@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AppearancePreview } from "@/components/settings/appearance-preview";
+import { LogoutButton } from "@/components/settings/logout-button";
 import { PageIntro } from "@/components/ui/page-intro";
 
 export const metadata: Metadata = {
@@ -15,6 +16,7 @@ export default function SettingsPage() {
         description="Atur tampilan dan, di fase berikutnya, preferensi akun serta privasi UangKu."
       />
       <AppearancePreview />
+      <LogoutButton />
     </>
   );
 }

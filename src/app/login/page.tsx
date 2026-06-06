@@ -1,17 +1,27 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { AuthForm } from "@/components/auth/auth-form";
 import { Brand } from "@/components/ui/brand";
-import { Icon } from "@/components/ui/icons";
+import { hasSupabaseEnv } from "@/lib/supabase/config";
 
 export const metadata: Metadata = {
   title: "Login",
 };
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<{
+    error?: string;
+    message?: string;
+  }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const { error, message } = await searchParams;
+  const isConfigured = hasSupabaseEnv();
+
   return (
     <main className="mx-auto flex min-h-dvh max-w-[480px] flex-col px-6 py-[max(2rem,env(safe-area-inset-top))]">
       <Brand />
-      <div className="my-auto py-16">
+      <div className="my-auto py-12">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">
           Selamat datang
         </p>
@@ -19,25 +29,30 @@ export default function LoginPage() {
           Keuangan lebih jelas, setiap hari.
         </h1>
         <p className="mt-4 text-base leading-7 text-muted">
-          Halaman login ini masih berupa placeholder. Autentikasi akan
-          dihubungkan pada fase tersendiri.
+          Masuk atau buat akun UangKu dengan email dan password.
         </p>
-        <Link
-          href="/dashboard"
-          className="mt-8 flex min-h-13 items-center justify-center gap-2 rounded-control bg-accent px-5 font-bold text-accent-foreground transition-colors hover:bg-accent-strong"
-        >
-          Lihat foundation
-          <Icon name="arrow" className="size-5" />
-        </Link>
-        <Link
-          href="/onboarding"
-          className="mt-3 flex min-h-13 items-center justify-center rounded-control border border-border bg-surface px-5 font-bold"
-        >
-          Lihat onboarding
-        </Link>
+
+        {!isConfigured && (
+          <p className="mt-6 rounded-control border border-expense/30 bg-expense/10 p-4 text-sm leading-6 text-expense">
+            Supabase belum dikonfigurasi. Isi variabel di{" "}
+            <code>.env.local</code> sebelum mencoba login.
+          </p>
+        )}
+        {error && (
+          <p className="mt-6 rounded-control border border-expense/30 bg-expense/10 p-4 text-sm leading-6 text-expense">
+            {error}
+          </p>
+        )}
+        {message && (
+          <p className="mt-6 rounded-control border border-income/30 bg-income/10 p-4 text-sm leading-6 text-income">
+            {message}
+          </p>
+        )}
+
+        {isConfigured && <AuthForm />}
       </div>
       <p className="text-center text-xs leading-5 text-muted">
-        Belum ada data akun atau autentikasi yang diproses.
+        Data akun dilindungi oleh Supabase Auth dan kebijakan akses per user.
       </p>
     </main>
   );
