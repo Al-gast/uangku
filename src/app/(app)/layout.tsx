@@ -20,5 +20,14 @@ export default async function MainAppLayout({
     redirect("/login");
   }
 
+  const { data: settings, error } = await supabase
+    .from("user_settings")
+    .select("onboarding_completed")
+    .maybeSingle();
+
+  if (error || !settings?.onboarding_completed) {
+    redirect("/onboarding");
+  }
+
   return <AppShell>{children}</AppShell>;
 }

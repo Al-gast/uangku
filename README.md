@@ -37,18 +37,19 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Database setup
 
-The initial schema is stored at:
+Database migrations are stored at:
 
 ```text
 supabase/migrations/202606060001_initial_schema.sql
+supabase/migrations/202606060002_onboarding.sql
 ```
 
 The Supabase CLI is not required. To apply it manually:
 
 1. Create or open a Supabase project.
 2. Open **SQL Editor** in the Supabase dashboard.
-3. Paste the migration contents into a new query.
-4. Run the query once.
+3. Paste and run each migration in filename order.
+4. Run `202606060002_onboarding.sql` after the initial schema.
 5. Confirm all tables show RLS as enabled in **Table Editor**.
 
 If the repo is linked with the Supabase CLI later, apply migrations with:
@@ -76,10 +77,24 @@ http://localhost:3000/auth/callback
 https://your-domain.example/auth/callback
 ```
 
+## Onboarding
+
+Authenticated users with incomplete onboarding are redirected to
+`/onboarding`. The three-step wizard supports:
+
+- Multiple cash, bank, e-wallet, investment, asset, or liability accounts
+- Initial balances written to both account balance columns
+- Optional monthly budgets
+- Minimal category creation only for selected onboarding budgets
+- Complete or skip status persisted in `user_settings`
+
+Account, category, budget, and completion writes run atomically through an
+authenticated Postgres function. The browser never supplies `user_id`.
+
 ## Current scope
 
-This phase includes authentication, Supabase client configuration, database
-schema, RLS policies, entity types, and default category constants.
+This phase includes authentication, schema/RLS, and onboarding for initial
+accounts, balances, and optional budgets.
 
 Transaction CRUD, calculations, budget behavior, portfolio behavior, chat
 parsing, OCR, export, and PWA enhancements remain intentionally deferred.
