@@ -28,20 +28,23 @@ type BudgetDraft = Record<
 
 const stepContent = [
   {
-    title: "Tambahkan akun uang kamu",
+    title: "Di mana uang kamu disimpan?",
     subtitle:
-      "Pisahkan rekening, e-wallet, cash, dan akun investasi supaya saldo lebih akurat.",
+      "Tambahkan rekening, e-wallet, atau cash yang kamu pakai sehari-hari. Bisa ditambah lagi nanti kok.",
   },
   {
-    title: "Isi saldo awal",
+    title: "Berapa saldo kamu sekarang?",
     subtitle:
-      "Saldo awal membantu UangKu menghitung sisa uang dan cashflow kamu dengan benar.",
+      "Isi kira-kira aja, nggak harus persis. Ini jadi titik awal pencatatan kamu.",
   },
   {
-    title: "Buat budget awal",
-    subtitle: "Boleh diisi sekarang atau nanti dari Settings.",
+    title: "Mau atur budget bulanan?",
+    subtitle:
+      "Budget membantu kamu tahu kapan pengeluaran mulai kebanyakan. Aktifkan kategori yang paling penting buat kamu.",
   },
 ];
+
+const stepLabels = ["Akun", "Saldo", "Budget"];
 
 const initialActionState: OnboardingActionState = {
   error: null,
@@ -93,9 +96,9 @@ function SubmitButtons() {
         name="budget_mode"
         value="save"
         disabled={pending}
-        className="flex min-h-13 w-full items-center justify-center rounded-control bg-accent px-5 font-bold text-accent-foreground transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex min-h-13 w-full items-center justify-center rounded-control bg-accent px-5 font-bold text-accent-foreground transition hover:bg-accent-strong active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {pending ? "Menyimpan..." : "Selesai dan buka Dashboard"}
+        {pending ? "Menyimpan..." : "Simpan & Mulai 🎉"}
       </button>
       <button
         type="submit"
@@ -104,7 +107,7 @@ function SubmitButtons() {
         disabled={pending}
         className="flex min-h-12 w-full items-center justify-center rounded-control border border-border bg-surface px-5 font-bold text-muted transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
       >
-        Lewati budget
+        Nanti aja deh
       </button>
     </div>
   );
@@ -173,11 +176,11 @@ export function OnboardingForm() {
   function validateCurrentStep() {
     if (step === 0) {
       if (accounts.length === 0) {
-        return "Tambahkan minimal satu akun.";
+        return "Tambahin satu akun dulu ya, biar UangKu bisa mulai catat.";
       }
 
       if (accounts.some((account) => !account.name.trim())) {
-        return "Nama setiap akun wajib diisi.";
+        return "Ada akun yang belum dikasih nama nih.";
       }
     }
 
@@ -185,7 +188,7 @@ export function OnboardingForm() {
       step === 1 &&
       accounts.some((account) => !isNumericInput(account.initialBalance))
     ) {
-      return "Saldo awal harus berupa angka.";
+      return "Hmm, saldo ini perlu berupa angka ya.";
     }
 
     return null;
@@ -209,15 +212,27 @@ export function OnboardingForm() {
       <input type="hidden" name="accounts_payload" value={accountsPayload} />
       <input type="hidden" name="budgets_payload" value={budgetsPayload} />
 
-      <div className="mb-7 flex gap-2" aria-label={`Langkah ${step + 1} dari 3`}>
-        {stepContent.map((item, index) => (
-          <span
-            key={item.title}
-            className={`h-1.5 flex-1 rounded-full ${
-              index <= step ? "bg-accent" : "bg-surface-muted"
-            }`}
-          />
-        ))}
+      <div className="mb-7" aria-label={`Langkah ${step + 1} dari 3`}>
+        <div className="flex gap-2">
+          {stepContent.map((item, index) => (
+            <span
+              key={item.title}
+              className={`h-2 flex-1 rounded-full transition-colors duration-300 ${
+                index <= step ? "bg-accent" : "bg-surface-muted"
+              }`}
+            />
+          ))}
+        </div>
+        <div className="mt-2 grid grid-cols-3 text-center text-[0.68rem] font-semibold text-muted">
+          {stepLabels.map((label, index) => (
+            <span
+              key={label}
+              className={index === step ? "text-accent-strong" : undefined}
+            >
+              {label}
+            </span>
+          ))}
+        </div>
       </div>
 
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">
@@ -238,7 +253,7 @@ export function OnboardingForm() {
         <div className="mt-7 space-y-5">
           <div>
             <p className="mb-3 text-xs font-bold uppercase tracking-wider text-muted">
-              Pilihan cepat
+              Pilih yang kamu pakai
             </p>
             <div className="flex flex-wrap gap-2">
               {accountPresets.map((preset) => (
@@ -246,19 +261,27 @@ export function OnboardingForm() {
                   key={preset.name}
                   type="button"
                   onClick={() => addPreset(preset.name, preset.type)}
-                  className="rounded-full border border-border bg-surface px-3.5 py-2 text-sm font-semibold transition hover:border-accent hover:text-accent"
+                  className="rounded-full border border-border bg-surface px-3.5 py-2 text-sm font-semibold transition hover:border-accent hover:text-accent active:scale-[0.98]"
                 >
-                  + {preset.name}
+                  <span aria-hidden="true">{preset.icon}</span> {preset.name}
                 </button>
               ))}
             </div>
           </div>
 
           <div className="space-y-3">
+            {accounts.length === 0 && (
+              <div className="rounded-card border border-dashed border-accent/50 bg-accent-soft/50 p-6 text-center">
+                <p className="font-bold text-foreground">Belum ada akun</p>
+                <p className="mt-2 text-sm leading-6 text-muted">
+                  Tap tombol di bawah atau pilih dari daftar populer.
+                </p>
+              </div>
+            )}
             {accounts.map((account, index) => (
               <div
                 key={account.id}
-                className="rounded-card border border-border bg-surface p-4 shadow-card"
+                className="rounded-card border border-border bg-surface p-4 shadow-card transition-colors focus-within:border-accent/60"
               >
                 <div className="mb-3 flex items-center justify-between">
                   <p className="text-sm font-bold">Akun {index + 1}</p>
@@ -274,30 +297,40 @@ export function OnboardingForm() {
                     Hapus
                   </button>
                 </div>
-                <input
-                  value={account.name}
-                  onChange={(event) =>
-                    updateAccount(account.id, { name: event.target.value })
-                  }
-                  placeholder="Nama akun, misalnya BCA"
-                  maxLength={100}
-                  className="min-h-12 w-full rounded-control border border-border bg-background px-4 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
-                />
-                <select
-                  value={account.type}
-                  onChange={(event) =>
-                    updateAccount(account.id, {
-                      type: event.target.value as AccountType,
-                    })
-                  }
-                  className="mt-3 min-h-12 w-full rounded-control border border-border bg-background px-4 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
-                >
-                  {accountTypeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold text-muted">
+                    Nama akun
+                  </span>
+                  <input
+                    value={account.name}
+                    onChange={(event) =>
+                      updateAccount(account.id, { name: event.target.value })
+                    }
+                    placeholder="Contoh: BCA utama"
+                    maxLength={100}
+                    className="min-h-12 w-full rounded-control border border-border bg-background px-4 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
+                  />
+                </label>
+                <label className="mt-3 block">
+                  <span className="mb-2 block text-xs font-bold text-muted">
+                    Jenis akun
+                  </span>
+                  <select
+                    value={account.type}
+                    onChange={(event) =>
+                      updateAccount(account.id, {
+                        type: event.target.value as AccountType,
+                      })
+                    }
+                    className="min-h-12 w-full rounded-control border border-border bg-background px-4 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
+                  >
+                    {accountTypeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
             ))}
           </div>
@@ -305,9 +338,9 @@ export function OnboardingForm() {
           <button
             type="button"
             onClick={() => setAccounts((current) => [...current, createDraft()])}
-            className="flex min-h-12 w-full items-center justify-center rounded-control border border-dashed border-accent bg-accent-soft px-4 font-bold text-accent-strong"
+            className="flex min-h-12 w-full items-center justify-center rounded-control border border-dashed border-accent bg-accent-soft px-4 font-bold text-accent-strong transition active:scale-[0.98]"
           >
-            + Tambah akun lain
+            + Tambah akun
           </button>
         </div>
       )}
@@ -319,9 +352,16 @@ export function OnboardingForm() {
               key={account.id}
               className="block rounded-card border border-border bg-surface p-4 shadow-card"
             >
-              <span className="font-bold">{account.name}</span>
+              <span className="flex items-center justify-between gap-3">
+                <span className="font-bold">{account.name}</span>
+                <span className="rounded-full bg-accent-soft px-2.5 py-1 text-[0.68rem] font-bold text-accent-strong">
+                  {accountTypeOptions.find(
+                    (option) => option.value === account.type,
+                  )?.label ?? account.type}
+                </span>
+              </span>
               <span className="mt-1 block text-xs text-muted">
-                Kosongkan jika saldonya Rp0
+                Kosongkan kalau belum tahu atau saldonya 0
               </span>
               <div className="mt-3 flex min-h-12 items-center rounded-control border border-border bg-background px-4 focus-within:border-accent focus-within:ring-4 focus-within:ring-accent-soft">
                 <span className="mr-2 text-sm font-bold text-muted">Rp</span>
@@ -356,7 +396,7 @@ export function OnboardingForm() {
                   <span>
                     <span className="block font-bold">{category}</span>
                     <span className="mt-1 block text-xs text-muted">
-                      Budget bulanan
+                      per bulan
                     </span>
                   </span>
                   <input
@@ -405,9 +445,9 @@ export function OnboardingForm() {
           <button
             type="button"
             onClick={goNext}
-            className="flex min-h-13 w-full items-center justify-center rounded-control bg-accent px-5 font-bold text-accent-foreground transition hover:bg-accent-strong"
+            className="flex min-h-13 w-full items-center justify-center rounded-control bg-accent px-5 font-bold text-accent-foreground transition hover:bg-accent-strong active:scale-[0.98]"
           >
-            Lanjut
+            {step === 0 ? "Lanjut ke Saldo →" : "Lanjut ke Budget →"}
           </button>
         ) : (
           <SubmitButtons />
@@ -421,7 +461,7 @@ export function OnboardingForm() {
             }}
             className="mt-3 flex min-h-11 w-full items-center justify-center font-bold text-muted"
           >
-            Kembali
+            ← Kembali
           </button>
         )}
       </div>

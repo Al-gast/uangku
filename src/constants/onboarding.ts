@@ -4,24 +4,25 @@ export const accountTypeOptions: Array<{
   value: AccountType;
   label: string;
 }> = [
-  { value: "cash", label: "Cash" },
-  { value: "bank_account", label: "Bank Account" },
+  { value: "cash", label: "Tunai" },
+  { value: "bank_account", label: "Rekening Bank" },
   { value: "e_wallet", label: "E-Wallet" },
-  { value: "investment_account", label: "Investment Account" },
-  { value: "asset_account", label: "Asset Account" },
-  { value: "liability", label: "Liability" },
+  { value: "investment_account", label: "Akun Investasi" },
+  { value: "asset_account", label: "Akun Aset" },
+  { value: "liability", label: "Hutang/Pinjaman" },
 ];
 
 export const accountPresets: Array<{
   name: string;
   type: AccountType;
+  icon: string;
 }> = [
-  { name: "BCA", type: "bank_account" },
-  { name: "Jago", type: "bank_account" },
-  { name: "GoPay", type: "e_wallet" },
-  { name: "Cash", type: "cash" },
-  { name: "Bibit", type: "investment_account" },
-  { name: "Stockbit", type: "investment_account" },
+  { name: "BCA", type: "bank_account", icon: "🏦" },
+  { name: "Jago", type: "bank_account", icon: "🏦" },
+  { name: "GoPay", type: "e_wallet", icon: "📱" },
+  { name: "Cash", type: "cash", icon: "💵" },
+  { name: "Bibit", type: "investment_account", icon: "📈" },
+  { name: "Stockbit", type: "investment_account", icon: "📈" },
 ];
 
 export const onboardingBudgetCategories = [

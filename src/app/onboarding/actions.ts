@@ -76,7 +76,9 @@ function parseAmount(value: unknown, fallback = 0) {
 
 function validateAccounts(rawAccounts: unknown[]): AccountInput[] {
   if (rawAccounts.length === 0) {
-    throw new Error("Tambahkan minimal satu akun.");
+    throw new Error(
+      "Tambahin satu akun dulu ya, biar UangKu bisa mulai catat.",
+    );
   }
 
   if (rawAccounts.length > 20) {
@@ -93,7 +95,7 @@ function validateAccounts(rawAccounts: unknown[]): AccountInput[] {
     const type = String(account.type ?? "") as AccountType;
 
     if (!name) {
-      throw new Error("Nama setiap akun wajib diisi.");
+      throw new Error("Ada akun yang belum dikasih nama nih.");
     }
 
     if (name.length > 100) {

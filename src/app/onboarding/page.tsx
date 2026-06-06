@@ -41,7 +41,7 @@ export default async function OnboardingPage({
         <Brand />
         <form action={skipOnboarding}>
           <button className="rounded-full px-3 py-2 text-sm font-bold text-muted transition hover:bg-surface-muted hover:text-foreground">
-            Lewati
+            Lewati semua
           </button>
         </form>
       </div>
