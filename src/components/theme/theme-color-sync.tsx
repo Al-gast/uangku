@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   getThemeColor,
   type AccentTheme,
@@ -30,7 +31,7 @@ export function updateDocumentThemeColor(
     window.matchMedia(darkModeQuery).matches,
   );
   const color = getThemeColor(accentTheme, resolvedMode);
-  const themeColorMetas = document.querySelectorAll<HTMLMetaElement>(
+  let themeColorMetas = document.querySelectorAll<HTMLMetaElement>(
     'meta[name="theme-color"]',
   );
   let themeColorMeta = themeColorMetas[0];
@@ -39,10 +40,13 @@ export function updateDocumentThemeColor(
     themeColorMeta = document.createElement("meta");
     themeColorMeta.name = "theme-color";
     document.head.append(themeColorMeta);
+    themeColorMetas = document.querySelectorAll<HTMLMetaElement>(
+      'meta[name="theme-color"]',
+    );
   }
 
-  themeColorMeta.content = color;
   themeColorMetas.forEach((meta, index) => {
+    meta.content = color;
     if (index > 0) {
       meta.remove();
     }
@@ -56,22 +60,46 @@ export function ThemeColorSync({
   themeMode: ThemeMode;
   accentTheme: AccentTheme;
 }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const search = searchParams.toString();
+
   useEffect(() => {
     const systemTheme = window.matchMedia(darkModeQuery);
     const syncThemeColor = () =>
       updateDocumentThemeColor(themeMode, accentTheme);
+    let frameId = 0;
+    let timeoutId = 0;
+    let delayedTimeoutId = 0;
 
-    syncThemeColor();
+    const scheduleSync = () => {
+      syncThemeColor();
+      cancelAnimationFrame(frameId);
+      window.clearTimeout(timeoutId);
+      window.clearTimeout(delayedTimeoutId);
+      frameId = requestAnimationFrame(syncThemeColor);
+      timeoutId = window.setTimeout(syncThemeColor, 0);
+      delayedTimeoutId = window.setTimeout(syncThemeColor, 75);
+    };
+
+    scheduleSync();
 
     if (themeMode !== "system") {
-      return;
+      return () => {
+        cancelAnimationFrame(frameId);
+        window.clearTimeout(timeoutId);
+        window.clearTimeout(delayedTimeoutId);
+      };
     }
 
-    systemTheme.addEventListener("change", syncThemeColor);
+    systemTheme.addEventListener("change", scheduleSync);
     return () => {
-      systemTheme.removeEventListener("change", syncThemeColor);
+      cancelAnimationFrame(frameId);
+      window.clearTimeout(timeoutId);
+      window.clearTimeout(delayedTimeoutId);
+      systemTheme.removeEventListener("change", scheduleSync);
     };
-  }, [accentTheme, themeMode]);
+  }, [accentTheme, pathname, search, themeMode]);
 
   return null;
 }
