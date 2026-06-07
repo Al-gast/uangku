@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { updateAppearance } from "@/app/(app)/settings/actions";
+import { updateDocumentThemeColor } from "@/components/theme/theme-color-sync";
 import {
   accentThemes,
   themeModes,
@@ -27,6 +28,7 @@ export function AppearanceSettings({
     const themeRoot = document.querySelector<HTMLElement>("[data-app-theme]");
     themeRoot?.setAttribute("data-mode", mode);
     themeRoot?.setAttribute("data-accent", accent);
+    updateDocumentThemeColor(mode, accent);
   }
 
   function save(mode: ThemeMode, accent: AccentTheme) {

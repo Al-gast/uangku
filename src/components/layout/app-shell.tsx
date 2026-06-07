@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { PrivacyProvider } from "@/components/providers/privacy-provider";
+import { ThemeColorSync } from "@/components/theme/theme-color-sync";
 import type { AccentTheme, ThemeMode } from "@/constants/themes";
 
 type AppShellProps = {
@@ -18,6 +19,7 @@ export function AppShell({
 }: AppShellProps) {
   return (
     <PrivacyProvider initialEnabled={privacyModeEnabled}>
+      <ThemeColorSync themeMode={themeMode} accentTheme={accentTheme} />
       <div
         data-app-theme
         data-mode={themeMode}
