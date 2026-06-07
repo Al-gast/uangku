@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import {
   getThemeColor,
@@ -30,9 +31,10 @@ export function updateDocumentThemeColor(
     window.matchMedia(darkModeQuery).matches,
   );
   const color = getThemeColor(accentTheme, resolvedMode);
-  let themeColorMeta = document.querySelector<HTMLMetaElement>(
+  const themeColorMetas = document.querySelectorAll<HTMLMetaElement>(
     'meta[name="theme-color"]',
   );
+  let themeColorMeta = themeColorMetas[0];
 
   if (!themeColorMeta) {
     themeColorMeta = document.createElement("meta");
@@ -41,6 +43,11 @@ export function updateDocumentThemeColor(
   }
 
   themeColorMeta.content = color;
+  themeColorMetas.forEach((meta, index) => {
+    if (index > 0) {
+      meta.remove();
+    }
+  });
 }
 
 export function ThemeColorSync({
@@ -50,20 +57,26 @@ export function ThemeColorSync({
   themeMode: ThemeMode;
   accentTheme: AccentTheme;
 }) {
+  const pathname = usePathname();
+
   useEffect(() => {
     const systemTheme = window.matchMedia(darkModeQuery);
     const syncThemeColor = () =>
       updateDocumentThemeColor(themeMode, accentTheme);
+    const animationFrame = window.requestAnimationFrame(syncThemeColor);
 
     syncThemeColor();
 
     if (themeMode !== "system") {
-      return;
+      return () => window.cancelAnimationFrame(animationFrame);
     }
 
     systemTheme.addEventListener("change", syncThemeColor);
-    return () => systemTheme.removeEventListener("change", syncThemeColor);
-  }, [accentTheme, themeMode]);
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      systemTheme.removeEventListener("change", syncThemeColor);
+    };
+  }, [accentTheme, pathname, themeMode]);
 
   return null;
 }
