@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowJs": false,
+    "declaration": false,
+    "incremental": false,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "noEmitOnError": true,
+    "outDir": "/private/tmp/uangku-parser-tests",
+    "sourceMap": false
+  },
+  "include": [
+    "tests/**/*.ts",
+    "src/lib/chat/**/*.ts",
+    "src/lib/portfolio/types.ts",
+    "src/types/**/*.ts"
+  ]
+}
