@@ -3,20 +3,22 @@ import { AccountSummary } from "@/components/dashboard/account-summary";
 import { BudgetWarnings } from "@/components/dashboard/budget-warnings";
 import { DashboardError } from "@/components/dashboard/dashboard-error";
 import { EmptyHero, HeroCard } from "@/components/dashboard/hero-card";
+import { DashboardPortfolioSummary } from "@/components/dashboard/portfolio-summary";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { StatCards } from "@/components/dashboard/stat-cards";
-import { PlaceholderCard } from "@/components/ui/placeholder-card";
 import { getBudgetWarnings } from "@/lib/budgets/data";
 import { getDashboardData } from "@/lib/dashboard/data";
+import { getPortfolioSummary } from "@/lib/portfolio/data";
 
 export const metadata: Metadata = {
   title: "Dashboard",
 };
 
 export default async function DashboardPage() {
-  const [data, budgetResult] = await Promise.all([
+  const [data, budgetResult, portfolioSummary] = await Promise.all([
     getDashboardData(),
     getBudgetWarnings(),
+    getPortfolioSummary(),
   ]);
   const greeting = data.profileName
     ? `Halo, ${data.profileName} 👋`
@@ -66,11 +68,7 @@ export default async function DashboardPage() {
         <RecentTransactions transactions={data.recentTransactions} />
       )}
 
-      <PlaceholderCard
-        icon="portfolio"
-        title="Portfolio kamu sedang disiapkan"
-        description="Ringkasan aset, net worth, dan asset allocation akan hadir di fase berikutnya."
-      />
+      <DashboardPortfolioSummary summary={portfolioSummary} />
     </div>
   );
 }

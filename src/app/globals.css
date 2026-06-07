@@ -25,6 +25,13 @@
   --investment: #7357c8;
   --debt: #c94d4d;
 
+  --alloc-cash: #3bba8a;
+  --alloc-rd: #5b8def;
+  --alloc-gold: #e8b94a;
+  --alloc-crypto: #f0924e;
+  --alloc-stock: #c75edb;
+  --alloc-other: #9caaa3;
+
   --radius-card: 1.5rem;
   --radius-control: 1rem;
 }
@@ -45,6 +52,12 @@
   --color-transfer: var(--transfer);
   --color-investment: var(--investment);
   --color-debt: var(--debt);
+  --color-alloc-cash: var(--alloc-cash);
+  --color-alloc-rd: var(--alloc-rd);
+  --color-alloc-gold: var(--alloc-gold);
+  --color-alloc-crypto: var(--alloc-crypto);
+  --color-alloc-stock: var(--alloc-stock);
+  --color-alloc-other: var(--alloc-other);
   --font-sans: var(--font-ui);
   --radius-card: var(--radius-card);
   --radius-control: var(--radius-control);
