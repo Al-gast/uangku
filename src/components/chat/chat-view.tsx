@@ -149,7 +149,7 @@ export function ChatView({
   }
 
   return (
-    <div className="-mb-8 flex h-[calc(100dvh-max(1.5rem,env(safe-area-inset-top))-5rem-env(safe-area-inset-bottom))] min-h-0 flex-col sm:h-[calc(100dvh-8rem-env(safe-area-inset-bottom))]">
+    <div className="-mb-8 flex h-[calc(100dvh-max(1.5rem,env(safe-area-inset-top))-4.75rem-max(0.75rem,env(safe-area-inset-bottom)))] min-h-0 flex-col sm:h-[calc(100dvh-9.25rem-max(0.75rem,env(safe-area-inset-bottom)))]">
       <header className="shrink-0 pb-3">
         <h1 className="text-xl font-extrabold tracking-tight">Chat</h1>
         <p className="mt-1 text-xs text-muted">Catat transaksi dengan cepat</p>
