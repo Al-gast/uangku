@@ -11,6 +11,11 @@ export const metadata: Metadata = {
 export default function SettingsPage() {
   const settingsItems = [
     {
+      href: "/settings/accounts",
+      title: "Accounts",
+      description: "Kelola tunai, rekening bank, dan e-wallet.",
+    },
+    {
       href: "/settings/budgets",
       title: "Budget",
       description: "Atur batas pengeluaran bulanan.",

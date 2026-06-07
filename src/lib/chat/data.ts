@@ -27,6 +27,7 @@ export async function getChatOptions() {
         .from("accounts")
         .select("id,name,type,current_balance")
         .eq("is_active", true)
+        .in("type", ["cash", "bank_account", "e_wallet"])
         .order("created_at"),
       supabase
         .from("categories")
