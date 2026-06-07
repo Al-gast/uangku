@@ -106,6 +106,8 @@ export async function updateTransaction(
   }
 
   revalidatePath("/cashflow");
+  revalidatePath("/dashboard");
+  revalidatePath("/settings/budgets");
   redirect(
     `/cashflow?success=${encodeURIComponent("Transaksi berhasil diperbarui.")}`,
   );
@@ -132,6 +134,8 @@ export async function deleteTransaction(formData: FormData) {
   }
 
   revalidatePath("/cashflow");
+  revalidatePath("/dashboard");
+  revalidatePath("/settings/budgets");
   redirect(
     `/cashflow?success=${encodeURIComponent("Transaksi berhasil dihapus.")}`,
   );

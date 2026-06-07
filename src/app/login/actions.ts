@@ -11,17 +11,36 @@ function getCredentials(formData: FormData) {
   };
 }
 
-function redirectToLogin(type: "error" | "message", message: string): never {
-  redirect(`/login?${type}=${encodeURIComponent(message)}`);
+function safeNextPath(value: FormDataEntryValue | null) {
+  const path = String(value ?? "");
+  return path.startsWith("/") && !path.startsWith("//") ? path : "/dashboard";
+}
+
+function redirectWithMessage(
+  pathname: "/login" | "/register",
+  type: "error" | "message",
+  message: string,
+  next?: string,
+): never {
+  const params = new URLSearchParams({ [type]: message });
+
+  if (next && next !== "/dashboard") {
+    params.set("next", next);
+  }
+
+  redirect(`${pathname}?${params.toString()}`);
 }
 
 export async function login(formData: FormData) {
   const { email, password } = getCredentials(formData);
+  const next = safeNextPath(formData.get("next"));
 
   if (!email || password.length < 6) {
-    redirectToLogin(
+    redirectWithMessage(
+      "/login",
       "error",
       "Isi email dan password minimal 6 karakter.",
+      next,
     );
   }
 
@@ -29,19 +48,42 @@ export async function login(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    redirectToLogin("error", "Email atau password belum sesuai.");
+    redirectWithMessage(
+      "/login",
+      "error",
+      "Email atau password belum sesuai.",
+      next,
+    );
   }
 
-  redirect("/dashboard");
+  redirect(next);
 }
 
 export async function signup(formData: FormData) {
   const { email, password } = getCredentials(formData);
+  const confirmPassword = String(formData.get("confirm_password") ?? "");
 
   if (!email || password.length < 6) {
-    redirectToLogin(
+    redirectWithMessage(
+      "/register",
       "error",
       "Isi email dan password minimal 6 karakter.",
+    );
+  }
+
+  if (!confirmPassword) {
+    redirectWithMessage(
+      "/register",
+      "error",
+      "Konfirmasi password wajib diisi.",
+    );
+  }
+
+  if (password !== confirmPassword) {
+    redirectWithMessage(
+      "/register",
+      "error",
+      "Password dan konfirmasi password belum sama.",
     );
   }
 
@@ -59,14 +101,15 @@ export async function signup(formData: FormData) {
   });
 
   if (error) {
-    redirectToLogin("error", error.message);
+    redirectWithMessage("/register", "error", error.message);
   }
 
   if (data.session) {
     redirect("/dashboard");
   }
 
-  redirectToLogin(
+  redirectWithMessage(
+    "/login",
     "message",
     "Akun dibuat. Cek email untuk mengonfirmasi akun kamu.",
   );

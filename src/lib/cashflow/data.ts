@@ -152,7 +152,7 @@ export async function getCashflowTransactions() {
   };
 }
 
-export async function getManualTransaction(transactionId: string) {
+export async function getCashflowTransaction(transactionId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("transactions")
@@ -161,7 +161,7 @@ export async function getManualTransaction(transactionId: string) {
     )
     .eq("id", transactionId)
     .in("type", ["income", "expense", "transfer"])
-    .eq("source", "manual")
+    .in("source", ["manual", "chat"])
     .maybeSingle();
 
   if (error || !data) {

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { TransactionForm } from "@/components/cashflow/transaction-form";
 import {
   getCashflowFormOptions,
-  getManualTransaction,
+  getCashflowTransaction,
 } from "@/lib/cashflow/data";
 import { toJakartaDateInput } from "@/lib/format";
 
@@ -20,7 +20,7 @@ export default async function EditTransactionPage({
 }: EditTransactionPageProps) {
   const { id } = await params;
   const [transaction, options] = await Promise.all([
-    getManualTransaction(id),
+    getCashflowTransaction(id),
     getCashflowFormOptions(),
   ]);
 

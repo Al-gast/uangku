@@ -60,7 +60,10 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (pathname === "/login" && isAuthenticated) {
+  if (
+    (pathname === "/login" || pathname === "/register") &&
+    isAuthenticated
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     url.search = "";

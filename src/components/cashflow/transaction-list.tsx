@@ -95,26 +95,24 @@ export function TransactionList({
               </p>
             )}
 
-            {transaction.source === "manual" && (
-              <div className="mt-4 flex items-center justify-end gap-4 border-t border-border pt-3">
-                <Link
-                  href={`/cashflow/${transaction.id}/edit`}
-                  className="text-sm font-bold text-accent-strong"
-                >
-                  Edit
-                </Link>
-                <form action={deleteTransaction}>
-                  <input
-                    type="hidden"
-                    name="transaction_id"
-                    value={transaction.id}
-                  />
-                  <button className="text-sm font-bold text-expense">
-                    Hapus
-                  </button>
-                </form>
-              </div>
-            )}
+            <div className="mt-4 flex items-center justify-end gap-4 border-t border-border pt-3">
+              <Link
+                href={`/cashflow/${transaction.id}/edit`}
+                className="text-sm font-bold text-accent-strong"
+              >
+                Edit
+              </Link>
+              <form action={deleteTransaction}>
+                <input
+                  type="hidden"
+                  name="transaction_id"
+                  value={transaction.id}
+                />
+                <button className="text-sm font-bold text-expense">
+                  Hapus
+                </button>
+              </form>
+            </div>
           </article>
         );
       })}
