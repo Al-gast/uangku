@@ -74,7 +74,7 @@ export async function getCashflowFormOptions() {
   };
 }
 
-async function mapTransactionRows(
+export async function mapTransactionRows(
   rows: TransactionRow[],
 ): Promise<CashflowTransactionItem[]> {
   const supabase = await createClient();
