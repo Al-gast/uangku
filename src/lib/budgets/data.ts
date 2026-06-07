@@ -22,7 +22,8 @@ type BudgetTransactionRow = {
     | "expense"
     | "transfer"
     | "investment_buy"
-    | "investment_sell";
+    | "investment_sell"
+    | "debt_payment";
   category_id: string;
   amount: number | string;
   admin_fee_amount: number | string;
@@ -109,6 +110,7 @@ export async function getCurrentMonthBudgets() {
           "transfer",
           "investment_buy",
           "investment_sell",
+          "debt_payment",
         ])
         .gte("transaction_date", month.start)
         .lt("transaction_date", month.end),

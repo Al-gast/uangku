@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default async function NewTransactionPage() {
-  const { accounts, assets, categories, setupError } =
+  const { accounts, assets, liabilities, categories, setupError } =
     await getCashflowFormOptions();
 
   return (
@@ -40,6 +40,7 @@ export default async function NewTransactionPage() {
         <TransactionForm
           accounts={accounts}
           assets={assets}
+          liabilities={liabilities}
           categories={categories}
           defaultDate={toJakartaDateInput()}
         />

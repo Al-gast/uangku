@@ -29,6 +29,10 @@ function successMessage(type: string) {
     return "Tarik investasi berhasil dicatat.";
   }
 
+  if (type === "debt_payment") {
+    return "Pembayaran hutang berhasil dicatat.";
+  }
+
   return "Transfer berhasil dicatat.";
 }
 
@@ -43,6 +47,14 @@ function rpcErrorMessage(code?: string, message?: string) {
 
   if (message?.includes("Admin fee cannot exceed")) {
     return "Biaya admin tidak boleh lebih besar dari nominal jual.";
+  }
+
+  if (message?.includes("Liability remaining cannot be negative")) {
+    return "Nominal pokok tidak boleh lebih besar dari sisa hutang.";
+  }
+
+  if (message?.includes("Liability not found")) {
+    return "Hutang yang dipilih tidak ditemukan.";
   }
 
   return initialError;
@@ -74,6 +86,7 @@ export async function createTransaction(
     p_notes: input.notes,
     p_asset_id: input.assetId,
     p_admin_fee_amount: input.adminFeeAmount,
+    p_liability_id: input.liabilityId,
   });
 
   if (error) {
@@ -122,6 +135,7 @@ export async function updateTransaction(
     p_notes: input.notes,
     p_asset_id: input.assetId,
     p_admin_fee_amount: input.adminFeeAmount,
+    p_liability_id: input.liabilityId,
   });
 
   if (error) {

@@ -36,6 +36,12 @@ const typePresentation = {
     className: "text-investment",
     badgeClassName: "bg-investment/10 text-investment",
   },
+  debt_payment: {
+    label: "Bayar hutang",
+    sign: "",
+    className: "text-debt",
+    badgeClassName: "bg-debt/10 text-debt",
+  },
 } as const;
 
 export function TransactionList({
@@ -105,10 +111,16 @@ export function TransactionList({
           accountCopy = `${transaction.assetName} → ${transaction.accountName}`;
         }
 
+        if (transaction.type === "debt_payment") {
+          accountCopy = `${transaction.accountName} → ${transaction.liabilityName}`;
+        }
+
         const title =
           transaction.type === "investment_buy" ||
           transaction.type === "investment_sell"
             ? (transaction.assetName ?? transaction.categoryName)
+            : transaction.type === "debt_payment"
+              ? (transaction.liabilityName ?? transaction.categoryName)
             : transaction.merchant || transaction.categoryName;
 
         return (

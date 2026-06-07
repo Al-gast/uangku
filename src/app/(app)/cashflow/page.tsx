@@ -44,7 +44,7 @@ export default async function CashflowPage({
         <PageIntro
           eyebrow="Transaksi"
           title="Cashflow"
-          description="Catat pemasukan, pengeluaran, transfer, dan perpindahan dana investasi."
+          description="Catat pemasukan, pengeluaran, transfer, investasi, dan pembayaran hutang."
         />
         <Link
           href="/cashflow/new"
@@ -72,7 +72,8 @@ export default async function CashflowPage({
         </p>
         <p className="mt-2 text-sm leading-6 text-muted">
           Investasi dicatat sebagai perpindahan nilai, bukan pengeluaran
-          konsumtif, sehingga tidak memengaruhi budget bulanan.
+          konsumtif. Pembayaran pokok hutang juga tidak memengaruhi budget;
+          biaya atau bunga tetap dihitung sebagai pengeluaran.
         </p>
       </section>
 

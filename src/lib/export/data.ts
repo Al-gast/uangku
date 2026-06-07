@@ -42,7 +42,7 @@ export async function getExportData(): Promise<ExportBundle> {
     supabase
       .from("transactions")
       .select(
-        "id,type,amount,admin_fee_amount,admin_fee_category_id,category_id,account_id,transfer_to_account_id,asset_id,transaction_date,merchant,notes,tags,source,created_at,updated_at",
+        "id,type,amount,admin_fee_amount,admin_fee_category_id,category_id,account_id,transfer_to_account_id,asset_id,liability_id,transaction_date,merchant,notes,tags,source,created_at,updated_at",
       )
       .eq("user_id", userId)
       .order("transaction_date", { ascending: false }),
@@ -105,6 +105,12 @@ export async function getExportData(): Promise<ExportBundle> {
   const assetNames = new Map(
     (assetResult.data ?? []).map((asset) => [asset.id, asset.name]),
   );
+  const liabilityNames = new Map(
+    (liabilityResult.data ?? []).map((liability) => [
+      liability.id,
+      liability.name,
+    ]),
+  );
 
   const transactions = createTable(
     "Transactions",
@@ -120,6 +126,7 @@ export async function getExportData(): Promise<ExportBundle> {
       "Akun",
       "Akun Tujuan",
       "Aset",
+      "Hutang",
       "Merchant",
       "Catatan",
       "Tag",
@@ -146,6 +153,10 @@ export async function getExportData(): Promise<ExportBundle> {
         : "",
       Aset: transaction.asset_id
         ? (assetNames.get(transaction.asset_id) ?? "Aset tidak tersedia")
+        : "",
+      Hutang: transaction.liability_id
+        ? (liabilityNames.get(transaction.liability_id) ??
+          "Hutang tidak tersedia")
         : "",
       Merchant: transaction.merchant ?? "",
       Catatan: transaction.notes ?? "",

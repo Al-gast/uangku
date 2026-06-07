@@ -28,6 +28,7 @@ type RecentTransactionRow = {
   account_id: string;
   transfer_to_account_id: string | null;
   asset_id: string | null;
+  liability_id: string | null;
   category_id: string;
 };
 
@@ -47,6 +48,7 @@ export async function getDashboardData(): Promise<DashboardData> {
           "transfer",
           "investment_buy",
           "investment_sell",
+          "debt_payment",
         ])
         .gte("transaction_date", month.start)
         .lt("transaction_date", month.end),
@@ -59,7 +61,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       supabase
         .from("transactions")
         .select(
-          "id,source,type,amount,admin_fee_amount,admin_fee_category_id,transaction_date,merchant,notes,account_id,transfer_to_account_id,asset_id,category_id",
+          "id,source,type,amount,admin_fee_amount,admin_fee_category_id,transaction_date,merchant,notes,account_id,transfer_to_account_id,asset_id,liability_id,category_id",
         )
         .in("type", [
           "income",
@@ -67,6 +69,7 @@ export async function getDashboardData(): Promise<DashboardData> {
           "transfer",
           "investment_buy",
           "investment_sell",
+          "debt_payment",
         ])
         .order("transaction_date", { ascending: false })
         .order("created_at", { ascending: false })

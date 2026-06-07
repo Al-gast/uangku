@@ -29,6 +29,11 @@ const transactionStyles = {
     amount: "text-investment",
     sign: "",
   },
+  debt_payment: {
+    dot: "bg-debt",
+    amount: "text-debt",
+    sign: "",
+  },
 } as const;
 
 export function RecentTransactions({
@@ -60,6 +65,8 @@ export function RecentTransactions({
               transaction.type === "investment_buy" ||
               transaction.type === "investment_sell"
                 ? (transaction.assetName ?? transaction.categoryName)
+                : transaction.type === "debt_payment"
+                  ? (transaction.liabilityName ?? transaction.categoryName)
                 : transaction.merchant || transaction.categoryName;
             let account = transaction.accountName;
 
@@ -73,6 +80,10 @@ export function RecentTransactions({
 
             if (transaction.type === "investment_sell") {
               account = `${transaction.assetName} → ${transaction.accountName}`;
+            }
+
+            if (transaction.type === "debt_payment") {
+              account = `${transaction.accountName} → ${transaction.liabilityName}`;
             }
 
             return (

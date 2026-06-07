@@ -16,6 +16,7 @@ import type {
   CashflowAccountOption,
   CashflowAssetOption,
   CashflowCategoryOption,
+  CashflowLiabilityOption,
   CashflowTransactionItem,
   ManualTransactionType,
 } from "@/lib/cashflow/types";
@@ -23,6 +24,7 @@ import type {
 type TransactionFormProps = {
   accounts: CashflowAccountOption[];
   assets: CashflowAssetOption[];
+  liabilities: CashflowLiabilityOption[];
   categories: CashflowCategoryOption[];
   defaultDate: string;
   transaction?: CashflowTransactionItem;
@@ -37,6 +39,7 @@ const typeOptions: Array<{
   { value: "transfer", label: "Transfer" },
   { value: "investment_buy", label: "Top up investasi" },
   { value: "investment_sell", label: "Jual / tarik investasi" },
+  { value: "debt_payment", label: "Bayar hutang" },
 ];
 
 const initialState: CashflowActionState = { error: null };
@@ -46,7 +49,11 @@ function isInvestmentType(type: ManualTransactionType) {
 }
 
 function supportsAdminFee(type: ManualTransactionType) {
-  return type === "transfer" || isInvestmentType(type);
+  return type === "transfer" || isInvestmentType(type) || isDebtPayment(type);
+}
+
+function isDebtPayment(type: ManualTransactionType) {
+  return type === "debt_payment";
 }
 
 function SubmitButton({ isEditing }: { isEditing: boolean }) {
@@ -70,6 +77,7 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
 export function TransactionForm({
   accounts,
   assets,
+  liabilities,
   categories,
   defaultDate,
   transaction,
@@ -90,9 +98,16 @@ export function TransactionForm({
   const [assetId, setAssetId] = useState(
     transaction?.assetId ?? assets[0]?.id ?? "",
   );
+  const [liabilityId, setLiabilityId] = useState(
+    transaction?.liabilityId ?? liabilities[0]?.id ?? "",
+  );
   const filteredCategories = useMemo(
     () => {
-      const categoryType = isInvestmentType(type) ? "investment" : type;
+      const categoryType = isInvestmentType(type)
+        ? "investment"
+        : isDebtPayment(type)
+          ? "debt"
+          : type;
       return categories.filter(
         (category) => category.transactionType === categoryType,
       );
@@ -118,16 +133,29 @@ export function TransactionForm({
     } else if (!assetId) {
       setAssetId(assets[0]?.id ?? "");
     }
+    if (!isDebtPayment(nextType)) {
+      setLiabilityId("");
+    } else if (!liabilityId) {
+      setLiabilityId(liabilities[0]?.id ?? "");
+    }
     const firstCategory = categories.find(
       (category) =>
         category.transactionType ===
-        (isInvestmentType(nextType) ? "investment" : nextType),
+        (isInvestmentType(nextType)
+          ? "investment"
+          : isDebtPayment(nextType)
+            ? "debt"
+            : nextType),
     );
     setCategoryId(firstCategory?.id ?? "");
   }
 
   const investmentType = isInvestmentType(type);
+  const debtPaymentType = isDebtPayment(type);
   const selectedAsset = assets.find((asset) => asset.id === assetId);
+  const selectedLiability = liabilities.find(
+    (liability) => liability.id === liabilityId,
+  );
 
   if (accounts.length === 0) {
     return (
@@ -153,7 +181,7 @@ export function TransactionForm({
         <input type="hidden" name="transaction_id" value={transaction.id} />
       )}
       <input type="hidden" name="type" value={type} />
-      {investmentType && (
+      {(investmentType || debtPaymentType) && (
         <input type="hidden" name="category_id" value={categoryId} />
       )}
 
@@ -184,7 +212,9 @@ export function TransactionForm({
       </fieldset>
 
       <label className="block">
-        <span className="mb-2 block text-sm font-bold">Nominal</span>
+        <span className="mb-2 block text-sm font-bold">
+          {debtPaymentType ? "Nominal pokok" : "Nominal"}
+        </span>
         <div className="flex min-h-14 items-center rounded-control border border-border bg-surface px-4 focus-within:border-accent focus-within:ring-4 focus-within:ring-accent-soft">
           <span className="mr-2 font-bold text-muted">Rp</span>
           <input
@@ -200,7 +230,9 @@ export function TransactionForm({
 
       {supportsAdminFee(type) && (
         <label className="block">
-          <span className="mb-2 block text-sm font-bold">Biaya admin</span>
+          <span className="mb-2 block text-sm font-bold">
+            {debtPaymentType ? "Biaya/bunga opsional" : "Biaya admin"}
+          </span>
           <div className="flex min-h-12 items-center rounded-control border border-border bg-surface px-4 focus-within:border-accent focus-within:ring-4 focus-within:ring-accent-soft">
             <span className="mr-2 font-bold text-muted">Rp</span>
             <input
@@ -217,7 +249,9 @@ export function TransactionForm({
             />
           </div>
           <p className="mt-2 text-xs leading-5 text-muted">
-            {type === "investment_sell"
+            {debtPaymentType
+              ? "Biaya atau bunga tetap dihitung sebagai pengeluaran."
+              : type === "investment_sell"
               ? "Nominal masuk ke akun akan dikurangi biaya admin."
               : "Kosongkan jika tidak ada biaya."}
           </p>
@@ -226,7 +260,7 @@ export function TransactionForm({
 
       <ThemedSelect
         label={
-          type === "transfer" || type === "investment_buy"
+          type === "transfer" || type === "investment_buy" || debtPaymentType
             ? "Dari akun"
             : type === "investment_sell"
               ? "Ke akun"
@@ -306,7 +340,41 @@ export function TransactionForm({
         />
       )}
 
-      {!investmentType && (
+      {debtPaymentType && (
+        <ThemedSelect
+          label="Hutang"
+          name="liability_id"
+          required
+          value={liabilityId}
+          placeholder="Pilih hutang"
+          onChange={setLiabilityId}
+          options={liabilities.map((liability) => ({
+            value: liability.id,
+            label: liability.name,
+            description: `Sisa ${formatPrivateAmount(
+              liability.remainingAmount,
+              privacyEnabled,
+            )}`,
+          }))}
+          helperText={
+            liabilities.length === 0 ? (
+              <span className="text-sm leading-6">
+                Belum ada hutang. Tambahkan liability dari Portfolio dulu.
+              </span>
+            ) : selectedLiability ? (
+              <>
+                Sisa hutang:{" "}
+                {formatPrivateAmount(
+                  selectedLiability.remainingAmount,
+                  privacyEnabled,
+                )}
+              </>
+            ) : undefined
+          }
+        />
+      )}
+
+      {!investmentType && !debtPaymentType && (
         <ThemedSelect
           label="Kategori"
           name="category_id"
@@ -329,12 +397,24 @@ export function TransactionForm({
         }
       />
 
+      {debtPaymentType && (
+        <section className="rounded-card border border-debt/20 bg-debt/10 p-4 text-sm leading-6 text-muted">
+          <p>
+            Pembayaran pokok hutang tidak dihitung sebagai pengeluaran
+            konsumtif.
+          </p>
+          <p className="mt-1">
+            Biaya atau bunga tetap dihitung sebagai pengeluaran.
+          </p>
+        </section>
+      )}
+
       <details className="rounded-card border border-border bg-surface p-4">
         <summary className="cursor-pointer font-bold text-accent-strong">
           Tambah detail
         </summary>
         <div className="mt-4 space-y-4">
-          {!investmentType && (
+          {!investmentType && !debtPaymentType && (
             <label className="block">
               <span className="mb-2 block text-sm font-bold">
                 Merchant atau sumber

@@ -56,6 +56,7 @@ export function CashflowFilterPanel({
               { value: "transfer", label: "Transfer" },
               { value: "investment_buy", label: "Top up investasi" },
               { value: "investment_sell", label: "Tarik investasi" },
+              { value: "debt_payment", label: "Bayar hutang" },
             ]}
           />
 

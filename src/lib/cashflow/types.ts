@@ -8,6 +8,7 @@ export type ManualTransactionType = Extract<
   | "transfer"
   | "investment_buy"
   | "investment_sell"
+  | "debt_payment"
 >;
 
 export type CashflowAccountOption = {
@@ -22,10 +23,16 @@ export type CashflowAssetOption = {
   currentValue: number;
 };
 
+export type CashflowLiabilityOption = {
+  id: string;
+  name: string;
+  remainingAmount: number;
+};
+
 export type CashflowCategoryOption = {
   id: string;
   name: string;
-  transactionType: "income" | "expense" | "transfer" | "investment";
+  transactionType: "income" | "expense" | "transfer" | "investment" | "debt";
 };
 
 export const cashflowDateRanges = [
@@ -74,6 +81,8 @@ export type CashflowTransactionItem = {
   destinationAccountName: string | null;
   assetId: string | null;
   assetName: string | null;
+  liabilityId: string | null;
+  liabilityName: string | null;
   categoryId: string;
   categoryName: string;
 };

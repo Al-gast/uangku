@@ -52,6 +52,7 @@ export default async function EditTransactionPage({
         <TransactionForm
           accounts={options.accounts}
           assets={options.assets}
+          liabilities={options.liabilities}
           categories={options.categories}
           defaultDate={toJakartaDateInput()}
           transaction={transaction}

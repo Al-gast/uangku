@@ -12,6 +12,7 @@ import type {
   CashflowFilterAccountOption,
   CashflowFilterCategoryOption,
   CashflowFilters,
+  CashflowLiabilityOption,
   CashflowTransactionItem,
   ManualTransactionType,
 } from "@/lib/cashflow/types";
@@ -30,6 +31,7 @@ type TransactionRow = {
   account_id: string;
   transfer_to_account_id: string | null;
   asset_id: string | null;
+  liability_id: string | null;
   category_id: string;
 };
 
@@ -39,6 +41,7 @@ const manualTransactionTypes: ManualTransactionType[] = [
   "transfer",
   "investment_buy",
   "investment_sell",
+  "debt_payment",
 ];
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -139,28 +142,39 @@ export async function ensureManualCashflowCategories() {
 
 export async function getCashflowFormOptions() {
   const supabase = await createClient();
-  const [setupResult, adminFeeResult, accountResult, assetResult] =
-    await Promise.all([
-      supabase.rpc("ensure_manual_cashflow_categories"),
-      supabase.rpc("ensure_admin_fee_category"),
-      supabase
-        .from("accounts")
-        .select("id,name,current_balance")
-        .eq("is_active", true)
-        .in("type", ["cash", "bank_account", "e_wallet"])
-        .order("created_at"),
-      supabase
-        .from("assets")
-        .select("id,name,current_value")
-        .in("type", ["rdpu", "rdpt", "gold", "crypto", "stock", "other_asset"])
-        .order("created_at"),
-    ]);
+  const [
+    setupResult,
+    adminFeeResult,
+    accountResult,
+    assetResult,
+    liabilityResult,
+  ] = await Promise.all([
+    supabase.rpc("ensure_manual_cashflow_categories"),
+    supabase.rpc("ensure_admin_fee_category"),
+    supabase
+      .from("accounts")
+      .select("id,name,current_balance")
+      .eq("is_active", true)
+      .in("type", ["cash", "bank_account", "e_wallet"])
+      .order("created_at"),
+    supabase
+      .from("assets")
+      .select("id,name,current_value")
+      .in("type", ["rdpu", "rdpt", "gold", "crypto", "stock", "other_asset"])
+      .order("created_at"),
+    supabase
+      .from("liabilities")
+      .select("id,name,remaining_amount")
+      .order("due_date", { ascending: true, nullsFirst: false })
+      .order("created_at"),
+  ]);
   const categorySetupError = setupResult.error ?? adminFeeResult.error;
 
   if (categorySetupError) {
     return {
       accounts: [] as CashflowAccountOption[],
       assets: [] as CashflowAssetOption[],
+      liabilities: [] as CashflowLiabilityOption[],
       categories: [] as CashflowCategoryOption[],
       setupError:
         categorySetupError.code === "PGRST202" ||
@@ -173,11 +187,18 @@ export async function getCashflowFormOptions() {
   const { data: categoryRows } = await supabase
     .from("categories")
     .select("id,name,transaction_type")
-    .in("transaction_type", ["income", "expense", "transfer", "investment"])
+    .in("transaction_type", [
+      "income",
+      "expense",
+      "transfer",
+      "investment",
+      "debt",
+    ])
     .eq("is_active", true)
     .order("name");
   const accountRows = accountResult.data;
   const assetRows = assetResult.data;
+  const liabilityRows = liabilityResult.data;
 
   return {
     accounts: (accountRows ?? []).map((account) => ({
@@ -189,6 +210,11 @@ export async function getCashflowFormOptions() {
       id: asset.id,
       name: asset.name,
       currentValue: Number(asset.current_value),
+    })),
+    liabilities: (liabilityRows ?? []).map((liability) => ({
+      id: liability.id,
+      name: liability.name,
+      remainingAmount: Number(liability.remaining_amount),
     })),
     categories: (categoryRows ?? []).map((category) => ({
       id: category.id,
@@ -217,6 +243,7 @@ export async function getCashflowFilterOptions() {
         "expense",
         "transfer",
         "investment",
+        "debt",
       ])
       .order("is_active", { ascending: false })
       .order("name"),
@@ -269,11 +296,19 @@ export async function mapTransactionRows(
         .filter((id): id is string => Boolean(id)),
     ),
   ];
+  const liabilityIds = [
+    ...new Set(
+      rows
+        .map((row) => row.liability_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
 
   const [
     { data: accountRows },
     { data: categoryRows },
     { data: assetRows },
+    { data: liabilityRows },
   ] = await Promise.all([
     accountIds.length
       ? supabase.from("accounts").select("id,name").in("id", accountIds)
@@ -283,6 +318,12 @@ export async function mapTransactionRows(
       : Promise.resolve({ data: [] }),
     assetIds.length
       ? supabase.from("assets").select("id,name").in("id", assetIds)
+      : Promise.resolve({ data: [] }),
+    liabilityIds.length
+      ? supabase
+          .from("liabilities")
+          .select("id,name")
+          .in("id", liabilityIds)
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -294,6 +335,12 @@ export async function mapTransactionRows(
   );
   const assetNames = new Map(
     (assetRows ?? []).map((asset) => [asset.id, asset.name]),
+  );
+  const liabilityNames = new Map(
+    (liabilityRows ?? []).map((liability) => [
+      liability.id,
+      liability.name,
+    ]),
   );
 
   return rows.map((row) => ({
@@ -317,6 +364,10 @@ export async function mapTransactionRows(
       : null,
     assetId: row.asset_id,
     assetName: row.asset_id ? (assetNames.get(row.asset_id) ?? "Aset") : null,
+    liabilityId: row.liability_id,
+    liabilityName: row.liability_id
+      ? (liabilityNames.get(row.liability_id) ?? "Hutang")
+      : null,
     categoryId: row.category_id,
     categoryName: categoryNames.get(row.category_id) ?? "Kategori",
   }));
@@ -327,7 +378,7 @@ export async function getCashflowTransactions(filters?: CashflowFilters) {
   let query = supabase
     .from("transactions")
     .select(
-      "id,source,type,amount,admin_fee_amount,admin_fee_category_id,transaction_date,merchant,notes,account_id,transfer_to_account_id,asset_id,category_id",
+      "id,source,type,amount,admin_fee_amount,admin_fee_category_id,transaction_date,merchant,notes,account_id,transfer_to_account_id,asset_id,liability_id,category_id",
     )
     .in("type", [
       "income",
@@ -335,6 +386,7 @@ export async function getCashflowTransactions(filters?: CashflowFilters) {
       "transfer",
       "investment_buy",
       "investment_sell",
+      "debt_payment",
     ])
     .in("source", ["manual", "chat"])
     .order("transaction_date", { ascending: false })
@@ -390,7 +442,7 @@ export async function getCashflowTransaction(transactionId: string) {
   const { data, error } = await supabase
     .from("transactions")
     .select(
-      "id,source,type,amount,admin_fee_amount,admin_fee_category_id,transaction_date,merchant,notes,account_id,transfer_to_account_id,asset_id,category_id",
+      "id,source,type,amount,admin_fee_amount,admin_fee_category_id,transaction_date,merchant,notes,account_id,transfer_to_account_id,asset_id,liability_id,category_id",
     )
     .eq("id", transactionId)
     .in("type", [
@@ -399,6 +451,7 @@ export async function getCashflowTransaction(transactionId: string) {
       "transfer",
       "investment_buy",
       "investment_sell",
+      "debt_payment",
     ])
     .in("source", ["manual", "chat"])
     .maybeSingle();

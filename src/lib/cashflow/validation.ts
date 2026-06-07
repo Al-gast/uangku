@@ -9,6 +9,7 @@ export type ManualTransactionInput = {
   transactionDate: string;
   transferToAccountId: string | null;
   assetId: string | null;
+  liabilityId: string | null;
   merchant: string | null;
   notes: string | null;
 };
@@ -19,6 +20,7 @@ const transactionTypes = new Set<ManualTransactionType>([
   "transfer",
   "investment_buy",
   "investment_sell",
+  "debt_payment",
 ]);
 
 function parseAmount(value: FormDataEntryValue | null) {
@@ -73,23 +75,28 @@ export function parseManualTransactionForm(
   const transactionDate = String(formData.get("transaction_date") ?? "");
   const destination = String(formData.get("transfer_to_account_id") ?? "");
   const assetId = String(formData.get("asset_id") ?? "");
+  const liabilityId = String(formData.get("liability_id") ?? "");
   const merchant = String(formData.get("merchant") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
   const isInvestment =
     type === "investment_buy" || type === "investment_sell";
+  const isDebtPayment = type === "debt_payment";
   const amount = parseAmount(formData.get("amount"));
   const adminFeeAmount = parseAdminFee(formData.get("admin_fee_amount"));
   const supportsAdminFee =
     type === "transfer" ||
     type === "investment_buy" ||
-    type === "investment_sell";
+    type === "investment_sell" ||
+    isDebtPayment;
 
   if (!transactionTypes.has(type)) {
     throw new Error("Pilih tipe transaksi.");
   }
 
   if (!supportsAdminFee && adminFeeAmount > 0) {
-    throw new Error("Biaya admin hanya untuk transfer atau investasi.");
+    throw new Error(
+      "Biaya admin hanya untuk transfer, investasi, atau bayar hutang.",
+    );
   }
 
   if (type === "investment_sell" && adminFeeAmount > amount) {
@@ -100,6 +107,8 @@ export function parseManualTransactionForm(
     throw new Error(
       type === "transfer" || type === "investment_buy"
         ? "Pilih akun sumber."
+        : isDebtPayment
+          ? "Pilih akun pembayaran."
         : "Pilih akun transaksi.",
     );
   }
@@ -124,8 +133,16 @@ export function parseManualTransactionForm(
     throw new Error("Pilih aset investasi.");
   }
 
+  if (isDebtPayment && !liabilityId) {
+    throw new Error("Pilih hutang yang dibayar.");
+  }
+
   if (!isInvestment && assetId) {
     throw new Error("Aset hanya digunakan untuk transaksi investasi.");
+  }
+
+  if (!isDebtPayment && liabilityId) {
+    throw new Error("Hutang hanya digunakan untuk transaksi bayar hutang.");
   }
 
   if (type !== "transfer" && destination) {
@@ -149,6 +166,7 @@ export function parseManualTransactionForm(
     transactionDate: `${transactionDate}T12:00:00+07:00`,
     transferToAccountId: type === "transfer" ? destination : null,
     assetId: isInvestment ? assetId : null,
+    liabilityId: isDebtPayment ? liabilityId : null,
     merchant: merchant || null,
     notes: notes || null,
   };

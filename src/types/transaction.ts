@@ -5,7 +5,8 @@ export type TransactionType =
   | "investment_buy"
   | "investment_sell"
   | "asset_update"
-  | "debt";
+  | "debt"
+  | "debt_payment";
 
 export type TransactionSource = "manual" | "chat" | "ocr" | "email";
 
@@ -20,6 +21,7 @@ export type Transaction = {
   account_id: string;
   transfer_to_account_id: string | null;
   asset_id: string | null;
+  liability_id: string | null;
   transaction_date: string;
   merchant: string | null;
   notes: string | null;
