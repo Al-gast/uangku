@@ -12,6 +12,7 @@ import { usePrivacy } from "@/components/providers/privacy-provider";
 import { formatPrivateAmount } from "@/lib/format";
 import type {
   CashflowAccountOption,
+  CashflowAssetOption,
   CashflowCategoryOption,
   CashflowTransactionItem,
   ManualTransactionType,
@@ -19,6 +20,7 @@ import type {
 
 type TransactionFormProps = {
   accounts: CashflowAccountOption[];
+  assets: CashflowAssetOption[];
   categories: CashflowCategoryOption[];
   defaultDate: string;
   transaction?: CashflowTransactionItem;
@@ -31,9 +33,15 @@ const typeOptions: Array<{
   { value: "income", label: "Pemasukan" },
   { value: "expense", label: "Pengeluaran" },
   { value: "transfer", label: "Transfer" },
+  { value: "investment_buy", label: "Top up investasi" },
+  { value: "investment_sell", label: "Jual / tarik investasi" },
 ];
 
 const initialState: CashflowActionState = { error: null };
+
+function isInvestmentType(type: ManualTransactionType) {
+  return type === "investment_buy" || type === "investment_sell";
+}
 
 function SubmitButton({ isEditing }: { isEditing: boolean }) {
   const { pending } = useFormStatus();
@@ -55,6 +63,7 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
 
 export function TransactionForm({
   accounts,
+  assets,
   categories,
   defaultDate,
   transaction,
@@ -72,9 +81,16 @@ export function TransactionForm({
   const [destinationAccountId, setDestinationAccountId] = useState(
     transaction?.transferToAccountId ?? "",
   );
+  const [assetId, setAssetId] = useState(
+    transaction?.assetId ?? assets[0]?.id ?? "",
+  );
   const filteredCategories = useMemo(
-    () =>
-      categories.filter((category) => category.transactionType === type),
+    () => {
+      const categoryType = isInvestmentType(type) ? "investment" : type;
+      return categories.filter(
+        (category) => category.transactionType === categoryType,
+      );
+    },
     [categories, type],
   );
   const selectedCategoryIsValid = filteredCategories.some(
@@ -91,11 +107,21 @@ export function TransactionForm({
     if (nextType !== "transfer") {
       setDestinationAccountId("");
     }
+    if (!isInvestmentType(nextType)) {
+      setAssetId("");
+    } else if (!assetId) {
+      setAssetId(assets[0]?.id ?? "");
+    }
     const firstCategory = categories.find(
-      (category) => category.transactionType === nextType,
+      (category) =>
+        category.transactionType ===
+        (isInvestmentType(nextType) ? "investment" : nextType),
     );
     setCategoryId(firstCategory?.id ?? "");
   }
+
+  const investmentType = isInvestmentType(type);
+  const selectedAsset = assets.find((asset) => asset.id === assetId);
 
   if (accounts.length === 0) {
     return (
@@ -120,6 +146,9 @@ export function TransactionForm({
         <input type="hidden" name="transaction_id" value={transaction.id} />
       )}
       <input type="hidden" name="type" value={type} />
+      {investmentType && (
+        <input type="hidden" name="category_id" value={categoryId} />
+      )}
 
       {state.error && (
         <p className="rounded-control border border-expense/30 bg-expense/10 p-4 text-sm leading-6 text-expense">
@@ -129,7 +158,7 @@ export function TransactionForm({
 
       <fieldset>
         <legend className="mb-2 text-sm font-bold">Tipe transaksi</legend>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {typeOptions.map((option) => (
             <button
               key={option.value}
@@ -164,7 +193,11 @@ export function TransactionForm({
 
       <label className="block">
         <span className="mb-2 block text-sm font-bold">
-          {type === "transfer" ? "Dari akun" : "Akun"}
+          {type === "transfer" || type === "investment_buy"
+            ? "Dari akun"
+            : type === "investment_sell"
+              ? "Ke akun"
+              : "Akun"}
         </span>
         <select
           name="account_id"
@@ -211,22 +244,58 @@ export function TransactionForm({
         </label>
       )}
 
-      <label className="block">
-        <span className="mb-2 block text-sm font-bold">Kategori</span>
-        <select
-          name="category_id"
-          required
-          value={categoryId}
-          onChange={(event) => setCategoryId(event.target.value)}
-          className="min-h-12 w-full rounded-control border border-border bg-surface px-4 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
-        >
-          {filteredCategories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      {investmentType && (
+        <label className="block">
+          <span className="mb-2 block text-sm font-bold">
+            {type === "investment_buy" ? "Ke aset" : "Dari aset"}
+          </span>
+          <select
+            name="asset_id"
+            required
+            value={assetId}
+            onChange={(event) => setAssetId(event.target.value)}
+            className="min-h-12 w-full rounded-control border border-border bg-surface px-4 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
+          >
+            <option value="">Pilih aset investasi</option>
+            {assets.map((asset) => (
+              <option key={asset.id} value={asset.id}>
+                {asset.name} ·{" "}
+                {formatPrivateAmount(asset.currentValue, privacyEnabled)}
+              </option>
+            ))}
+          </select>
+          {assets.length === 0 && (
+            <p className="mt-2 text-sm leading-6 text-muted">
+              Belum ada aset investasi. Tambahkan aset dari Portfolio dulu.
+            </p>
+          )}
+          {type === "investment_sell" && selectedAsset && (
+            <p className="mt-2 text-xs text-muted">
+              Nilai aset saat ini:{" "}
+              {formatPrivateAmount(selectedAsset.currentValue, privacyEnabled)}
+            </p>
+          )}
+        </label>
+      )}
+
+      {!investmentType && (
+        <label className="block">
+          <span className="mb-2 block text-sm font-bold">Kategori</span>
+          <select
+            name="category_id"
+            required
+            value={categoryId}
+            onChange={(event) => setCategoryId(event.target.value)}
+            className="min-h-12 w-full rounded-control border border-border bg-surface px-4 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
+          >
+            {filteredCategories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <label className="block">
         <span className="mb-2 block text-sm font-bold">Tanggal</span>
@@ -248,20 +317,24 @@ export function TransactionForm({
           Tambah detail
         </summary>
         <div className="mt-4 space-y-4">
-          <label className="block">
-            <span className="mb-2 block text-sm font-bold">
-              Merchant atau sumber
-            </span>
-            <input
-              name="merchant"
-              defaultValue={transaction?.merchant ?? ""}
-              maxLength={120}
-              placeholder={
-                type === "income" ? "Contoh: Kantor" : "Contoh: Warung makan"
-              }
-              className="min-h-12 w-full rounded-control border border-border bg-background px-4 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
-            />
-          </label>
+          {!investmentType && (
+            <label className="block">
+              <span className="mb-2 block text-sm font-bold">
+                Merchant atau sumber
+              </span>
+              <input
+                name="merchant"
+                defaultValue={transaction?.merchant ?? ""}
+                maxLength={120}
+                placeholder={
+                  type === "income"
+                    ? "Contoh: Kantor"
+                    : "Contoh: Warung makan"
+                }
+                className="min-h-12 w-full rounded-control border border-border bg-background px-4 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
+              />
+            </label>
+          )}
           <label className="block">
             <span className="mb-2 block text-sm font-bold">Catatan</span>
             <textarea

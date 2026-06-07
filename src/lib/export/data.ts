@@ -42,7 +42,7 @@ export async function getExportData(): Promise<ExportBundle> {
     supabase
       .from("transactions")
       .select(
-        "id,type,amount,category_id,account_id,transfer_to_account_id,transaction_date,merchant,notes,tags,source,created_at,updated_at",
+        "id,type,amount,category_id,account_id,transfer_to_account_id,asset_id,transaction_date,merchant,notes,tags,source,created_at,updated_at",
       )
       .eq("user_id", userId)
       .order("transaction_date", { ascending: false }),
@@ -102,6 +102,9 @@ export async function getExportData(): Promise<ExportBundle> {
   const categoryNames = new Map(
     (categoryResult.data ?? []).map((category) => [category.id, category.name]),
   );
+  const assetNames = new Map(
+    (assetResult.data ?? []).map((asset) => [asset.id, asset.name]),
+  );
 
   const transactions = createTable(
     "Transactions",
@@ -114,6 +117,7 @@ export async function getExportData(): Promise<ExportBundle> {
       "Kategori",
       "Akun",
       "Akun Tujuan",
+      "Aset",
       "Merchant",
       "Catatan",
       "Tag",
@@ -132,6 +136,9 @@ export async function getExportData(): Promise<ExportBundle> {
       "Akun Tujuan": transaction.transfer_to_account_id
         ? (accountNames.get(transaction.transfer_to_account_id) ??
           "Akun tidak tersedia")
+        : "",
+      Aset: transaction.asset_id
+        ? (assetNames.get(transaction.asset_id) ?? "Aset tidak tersedia")
         : "",
       Merchant: transaction.merchant ?? "",
       Catatan: transaction.notes ?? "",

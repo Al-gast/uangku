@@ -24,6 +24,7 @@ type RecentTransactionRow = {
   notes: string | null;
   account_id: string;
   transfer_to_account_id: string | null;
+  asset_id: string | null;
   category_id: string;
 };
 
@@ -49,9 +50,15 @@ export async function getDashboardData(): Promise<DashboardData> {
       supabase
         .from("transactions")
         .select(
-          "id,source,type,amount,transaction_date,merchant,notes,account_id,transfer_to_account_id,category_id",
+          "id,source,type,amount,transaction_date,merchant,notes,account_id,transfer_to_account_id,asset_id,category_id",
         )
-        .in("type", ["income", "expense", "transfer"])
+        .in("type", [
+          "income",
+          "expense",
+          "transfer",
+          "investment_buy",
+          "investment_sell",
+        ])
         .order("transaction_date", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(5),

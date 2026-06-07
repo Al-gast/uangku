@@ -21,12 +21,24 @@ function successMessage(type: string) {
     return "Oke, pengeluaran berhasil dicatat.";
   }
 
+  if (type === "investment_buy") {
+    return "Top up investasi berhasil dicatat.";
+  }
+
+  if (type === "investment_sell") {
+    return "Tarik investasi berhasil dicatat.";
+  }
+
   return "Transfer berhasil dicatat.";
 }
 
-function rpcErrorMessage(code?: string) {
+function rpcErrorMessage(code?: string, message?: string) {
   if (code === "PGRST202" || code === "42883") {
     return "Migration manual cashflow belum diterapkan di Supabase.";
+  }
+
+  if (code === "23514" || message?.includes("Asset value cannot be negative")) {
+    return "Nilai aset tidak cukup untuk transaksi ini.";
   }
 
   return initialError;
@@ -56,13 +68,17 @@ export async function createTransaction(
     p_transfer_to_account_id: input.transferToAccountId,
     p_merchant: input.merchant,
     p_notes: input.notes,
+    p_asset_id: input.assetId,
   });
 
   if (error) {
-    return { error: rpcErrorMessage(error.code) };
+    return { error: rpcErrorMessage(error.code, error.message) };
   }
 
   revalidatePath("/cashflow");
+  revalidatePath("/dashboard");
+  revalidatePath("/settings/budgets");
+  revalidatePath("/portfolio");
   redirect(
     `/cashflow?success=${encodeURIComponent(successMessage(input.type))}`,
   );
@@ -99,15 +115,17 @@ export async function updateTransaction(
     p_transfer_to_account_id: input.transferToAccountId,
     p_merchant: input.merchant,
     p_notes: input.notes,
+    p_asset_id: input.assetId,
   });
 
   if (error) {
-    return { error: rpcErrorMessage(error.code) };
+    return { error: rpcErrorMessage(error.code, error.message) };
   }
 
   revalidatePath("/cashflow");
   revalidatePath("/dashboard");
   revalidatePath("/settings/budgets");
+  revalidatePath("/portfolio");
   redirect(
     `/cashflow?success=${encodeURIComponent("Transaksi berhasil diperbarui.")}`,
   );
@@ -129,13 +147,16 @@ export async function deleteTransaction(formData: FormData) {
 
   if (error) {
     redirect(
-      `/cashflow?error=${encodeURIComponent(rpcErrorMessage(error.code))}`,
+      `/cashflow?error=${encodeURIComponent(
+        rpcErrorMessage(error.code, error.message),
+      )}`,
     );
   }
 
   revalidatePath("/cashflow");
   revalidatePath("/dashboard");
   revalidatePath("/settings/budgets");
+  revalidatePath("/portfolio");
   redirect(
     `/cashflow?success=${encodeURIComponent("Transaksi berhasil dihapus.")}`,
   );

@@ -102,6 +102,7 @@ export async function saveChatTransaction(
   revalidatePath("/dashboard");
   revalidatePath("/cashflow");
   revalidatePath("/chat");
+  revalidatePath("/settings/budgets");
 
   return {
     success: true,

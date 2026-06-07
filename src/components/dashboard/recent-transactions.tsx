@@ -19,6 +19,16 @@ const transactionStyles = {
     amount: "text-transfer",
     sign: "",
   },
+  investment_buy: {
+    dot: "bg-investment",
+    amount: "text-investment",
+    sign: "",
+  },
+  investment_sell: {
+    dot: "bg-investment",
+    amount: "text-investment",
+    sign: "",
+  },
 } as const;
 
 export function RecentTransactions({
@@ -47,11 +57,23 @@ export function RecentTransactions({
           {transactions.map((transaction, index) => {
             const styles = transactionStyles[transaction.type];
             const title =
-              transaction.merchant || transaction.categoryName;
-            const account =
-              transaction.type === "transfer"
-                ? `${transaction.accountName} → ${transaction.destinationAccountName}`
-                : transaction.accountName;
+              transaction.type === "investment_buy" ||
+              transaction.type === "investment_sell"
+                ? (transaction.assetName ?? transaction.categoryName)
+                : transaction.merchant || transaction.categoryName;
+            let account = transaction.accountName;
+
+            if (transaction.type === "transfer") {
+              account = `${transaction.accountName} → ${transaction.destinationAccountName}`;
+            }
+
+            if (transaction.type === "investment_buy") {
+              account = `${transaction.accountName} → ${transaction.assetName}`;
+            }
+
+            if (transaction.type === "investment_sell") {
+              account = `${transaction.assetName} → ${transaction.accountName}`;
+            }
 
             return (
               <div

@@ -29,7 +29,7 @@ export default async function CashflowPage({
         <PageIntro
           eyebrow="Transaksi"
           title="Cashflow"
-          description="Catat pemasukan, pengeluaran, dan perpindahan uang antar akun."
+          description="Catat pemasukan, pengeluaran, transfer, dan perpindahan dana investasi."
         />
         <Link
           href="/cashflow/new"
@@ -56,8 +56,8 @@ export default async function CashflowPage({
           Ringkasan
         </p>
         <p className="mt-2 text-sm leading-6 text-muted">
-          Ringkasan cashflow bulanan akan hadir pada fase Dashboard. Untuk
-          sekarang, fokusnya pencatatan transaksi yang akurat.
+          Investasi dicatat sebagai perpindahan nilai, bukan pengeluaran
+          konsumtif, sehingga tidak memengaruhi budget bulanan.
         </p>
       </section>
 

@@ -7,6 +7,7 @@ export type ManualTransactionInput = {
   categoryId: string;
   transactionDate: string;
   transferToAccountId: string | null;
+  assetId: string | null;
   merchant: string | null;
   notes: string | null;
 };
@@ -15,6 +16,8 @@ const transactionTypes = new Set<ManualTransactionType>([
   "income",
   "expense",
   "transfer",
+  "investment_buy",
+  "investment_sell",
 ]);
 
 function parseAmount(value: FormDataEntryValue | null) {
@@ -44,8 +47,11 @@ export function parseManualTransactionForm(
   const categoryId = String(formData.get("category_id") ?? "");
   const transactionDate = String(formData.get("transaction_date") ?? "");
   const destination = String(formData.get("transfer_to_account_id") ?? "");
+  const assetId = String(formData.get("asset_id") ?? "");
   const merchant = String(formData.get("merchant") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
+  const isInvestment =
+    type === "investment_buy" || type === "investment_sell";
 
   if (!transactionTypes.has(type)) {
     throw new Error("Pilih tipe transaksi.");
@@ -53,7 +59,9 @@ export function parseManualTransactionForm(
 
   if (!accountId) {
     throw new Error(
-      type === "transfer" ? "Pilih akun sumber." : "Pilih akun transaksi.",
+      type === "transfer" || type === "investment_buy"
+        ? "Pilih akun sumber."
+        : "Pilih akun transaksi.",
     );
   }
 
@@ -73,6 +81,18 @@ export function parseManualTransactionForm(
     throw new Error("Akun tujuan harus berbeda dari akun sumber.");
   }
 
+  if (isInvestment && !assetId) {
+    throw new Error("Pilih aset investasi.");
+  }
+
+  if (!isInvestment && assetId) {
+    throw new Error("Aset hanya digunakan untuk transaksi investasi.");
+  }
+
+  if (type !== "transfer" && destination) {
+    throw new Error("Akun tujuan hanya digunakan untuk transfer.");
+  }
+
   if (merchant.length > 120) {
     throw new Error("Nama merchant maksimal 120 karakter.");
   }
@@ -88,6 +108,7 @@ export function parseManualTransactionForm(
     categoryId,
     transactionDate: `${transactionDate}T12:00:00+07:00`,
     transferToAccountId: type === "transfer" ? destination : null,
+    assetId: isInvestment ? assetId : null,
     merchant: merchant || null,
     notes: notes || null,
   };

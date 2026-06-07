@@ -23,6 +23,18 @@ const typePresentation = {
     className: "text-transfer",
     badgeClassName: "bg-transfer/10 text-transfer",
   },
+  investment_buy: {
+    label: "Top up investasi",
+    sign: "",
+    className: "text-investment",
+    badgeClassName: "bg-investment/10 text-investment",
+  },
+  investment_sell: {
+    label: "Tarik investasi",
+    sign: "",
+    className: "text-investment",
+    badgeClassName: "bg-investment/10 text-investment",
+  },
 } as const;
 
 export function TransactionList({
@@ -48,10 +60,25 @@ export function TransactionList({
     <div className="space-y-3">
       {transactions.map((transaction) => {
         const presentation = typePresentation[transaction.type];
-        const accountCopy =
-          transaction.type === "transfer"
-            ? `${transaction.accountName} → ${transaction.destinationAccountName}`
-            : transaction.accountName;
+        let accountCopy = transaction.accountName;
+
+        if (transaction.type === "transfer") {
+          accountCopy = `${transaction.accountName} → ${transaction.destinationAccountName}`;
+        }
+
+        if (transaction.type === "investment_buy") {
+          accountCopy = `${transaction.accountName} → ${transaction.assetName}`;
+        }
+
+        if (transaction.type === "investment_sell") {
+          accountCopy = `${transaction.assetName} → ${transaction.accountName}`;
+        }
+
+        const title =
+          transaction.type === "investment_buy" ||
+          transaction.type === "investment_sell"
+            ? (transaction.assetName ?? transaction.categoryName)
+            : transaction.merchant || transaction.categoryName;
 
         return (
           <article
@@ -75,9 +102,7 @@ export function TransactionList({
                     </span>
                   )}
                 </div>
-                <h2 className="mt-3 truncate font-bold">
-                  {transaction.merchant || transaction.categoryName}
-                </h2>
+                <h2 className="mt-3 truncate font-bold">{title}</h2>
                 <p className="mt-1 truncate text-sm text-muted">
                   {accountCopy} · {transaction.categoryName}
                 </p>
