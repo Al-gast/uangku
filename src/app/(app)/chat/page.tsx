@@ -1,24 +1,19 @@
 import type { Metadata } from "next";
-import { PageIntro } from "@/components/ui/page-intro";
-import { PlaceholderCard } from "@/components/ui/placeholder-card";
+import { ChatView } from "@/components/chat/chat-view";
+import { getChatOptions } from "@/lib/chat/data";
 
 export const metadata: Metadata = {
   title: "Chat",
 };
 
-export default function ChatPage() {
+export default async function ChatPage() {
+  const { accounts, categories, setupError } = await getChatOptions();
+
   return (
-    <>
-      <PageIntro
-        eyebrow="Input cepat"
-        title="Chat"
-        description="Nanti kamu bisa mencatat transaksi dengan bahasa sehari-hari dan memeriksanya sebelum disimpan."
-      />
-      <PlaceholderCard
-        icon="chat"
-        title="Chat input belum aktif"
-        description="Template chips, parser sederhana, dan transaction preview tetap menunggu fase cashflow stabil."
-      />
-    </>
+    <ChatView
+      accounts={accounts}
+      categories={categories}
+      setupError={setupError}
+    />
   );
 }

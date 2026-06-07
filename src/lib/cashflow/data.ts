@@ -11,6 +11,7 @@ import type {
 
 type TransactionRow = {
   id: string;
+  source: CashflowTransactionItem["source"];
   type: ManualTransactionType;
   amount: number | string;
   transaction_date: string;
@@ -107,6 +108,7 @@ export async function mapTransactionRows(
 
   return rows.map((row) => ({
     id: row.id,
+    source: row.source,
     type: row.type,
     amount: Number(row.amount),
     transactionDate: row.transaction_date,
@@ -123,15 +125,15 @@ export async function mapTransactionRows(
   }));
 }
 
-export async function getManualTransactions() {
+export async function getCashflowTransactions() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("transactions")
     .select(
-      "id,type,amount,transaction_date,merchant,notes,account_id,transfer_to_account_id,category_id",
+      "id,source,type,amount,transaction_date,merchant,notes,account_id,transfer_to_account_id,category_id",
     )
     .in("type", ["income", "expense", "transfer"])
-    .eq("source", "manual")
+    .in("source", ["manual", "chat"])
     .order("transaction_date", { ascending: false })
     .order("created_at", { ascending: false });
 
@@ -155,7 +157,7 @@ export async function getManualTransaction(transactionId: string) {
   const { data, error } = await supabase
     .from("transactions")
     .select(
-      "id,type,amount,transaction_date,merchant,notes,account_id,transfer_to_account_id,category_id",
+      "id,source,type,amount,transaction_date,merchant,notes,account_id,transfer_to_account_id,category_id",
     )
     .eq("id", transactionId)
     .in("type", ["income", "expense", "transfer"])

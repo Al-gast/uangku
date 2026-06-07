@@ -1,4 +1,5 @@
 import type { TransactionType } from "@/types/transaction";
+import type { TransactionSource } from "@/types/transaction";
 
 export type ManualTransactionType = Extract<
   TransactionType,
@@ -19,6 +20,7 @@ export type CashflowCategoryOption = {
 
 export type CashflowTransactionItem = {
   id: string;
+  source: Extract<TransactionSource, "manual" | "chat">;
   type: ManualTransactionType;
   amount: number;
   transactionDate: string;

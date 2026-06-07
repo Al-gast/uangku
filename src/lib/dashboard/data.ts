@@ -16,6 +16,7 @@ type MonthlyTransactionRow = {
 
 type RecentTransactionRow = {
   id: string;
+  source: CashflowTransactionItem["source"];
   type: ManualTransactionType;
   amount: number | string;
   transaction_date: string;
@@ -48,7 +49,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       supabase
         .from("transactions")
         .select(
-          "id,type,amount,transaction_date,merchant,notes,account_id,transfer_to_account_id,category_id",
+          "id,source,type,amount,transaction_date,merchant,notes,account_id,transfer_to_account_id,category_id",
         )
         .in("type", ["income", "expense", "transfer"])
         .order("transaction_date", { ascending: false })

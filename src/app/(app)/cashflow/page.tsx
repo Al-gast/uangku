@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { TransactionList } from "@/components/cashflow/transaction-list";
 import { PageIntro } from "@/components/ui/page-intro";
-import { getManualTransactions } from "@/lib/cashflow/data";
+import { getCashflowTransactions } from "@/lib/cashflow/data";
 
 export const metadata: Metadata = {
   title: "Cashflow",
@@ -20,7 +20,7 @@ export default async function CashflowPage({
 }: CashflowPageProps) {
   const [{ success, error: queryError }, result] = await Promise.all([
     searchParams,
-    getManualTransactions(),
+    getCashflowTransactions(),
   ]);
 
   return (
