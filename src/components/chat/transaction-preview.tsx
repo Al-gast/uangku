@@ -1,5 +1,6 @@
 "use client";
 
+import { ThemedSelect } from "@/components/ui/themed-select";
 import type {
   ChatAccount,
   ChatAsset,
@@ -189,109 +190,82 @@ export function TransactionPreview({
         )}
 
         {!isInvestment && (
-          <label className="block">
-            <span className="mb-2 block text-xs font-bold text-muted">
-              Kategori
-            </span>
-            <select
-              value={draft.categoryId}
-              onChange={(event) =>
-                onChange({ ...draft, categoryId: event.target.value })
-              }
-              className="min-h-12 w-full rounded-control border border-border bg-background px-4 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
-            >
-              {availableCategories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <ThemedSelect
+            label="Kategori"
+            value={draft.categoryId}
+            onChange={(categoryId) => onChange({ ...draft, categoryId })}
+            options={availableCategories.map((category) => ({
+              value: category.id,
+              label: category.name,
+            }))}
+          />
         )}
 
-        <label className="block">
-          <span className="mb-2 block text-xs font-bold text-muted">
-            {draft.type === "transfer" || draft.type === "investment_buy"
+        <ThemedSelect
+          label={
+            draft.type === "transfer" || draft.type === "investment_buy"
               ? "Dari akun"
               : draft.type === "investment_sell"
                 ? "Ke akun"
-                : "Akun"}
-          </span>
-          <select
-            value={draft.accountId}
-            onChange={(event) => {
-              const accountId = event.target.value;
-              const destinationAccountId =
-                draft.transferToAccountId === accountId
-                  ? (accounts.find((account) => account.id !== accountId)?.id ??
-                    null)
-                  : draft.transferToAccountId;
-              onChange({
-                ...draft,
-                accountId,
-                transferToAccountId: destinationAccountId,
-              });
-            }}
-            className="min-h-12 w-full rounded-control border border-border bg-background px-4 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
-          >
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
-              </option>
-            ))}
-          </select>
-        </label>
+                : "Akun"
+          }
+          value={draft.accountId}
+          onChange={(accountId) => {
+            const destinationAccountId =
+              draft.transferToAccountId === accountId
+                ? (accounts.find((account) => account.id !== accountId)?.id ??
+                  null)
+                : draft.transferToAccountId;
+            onChange({
+              ...draft,
+              accountId,
+              transferToAccountId: destinationAccountId,
+            });
+          }}
+          options={accounts.map((account) => ({
+            value: account.id,
+            label: account.name,
+          }))}
+        />
 
         {isInvestment && (
-          <label className="block">
-            <span className="mb-2 block text-xs font-bold text-muted">
-              {draft.type === "investment_buy" ? "Ke aset" : "Dari aset"}
-            </span>
-            <select
-              value={draft.assetId ?? ""}
-              onChange={(event) =>
-                onChange({
-                  ...draft,
-                  assetId: event.target.value || null,
-                })
-              }
-              className="min-h-12 w-full rounded-control border border-border bg-background px-4 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
-            >
-              <option value="">Pilih aset investasi</option>
-              {assets.map((asset) => (
-                <option key={asset.id} value={asset.id}>
-                  {asset.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <ThemedSelect
+            label={
+              draft.type === "investment_buy" ? "Ke aset" : "Dari aset"
+            }
+            value={draft.assetId ?? ""}
+            placeholder="Pilih aset investasi"
+            onChange={(assetId) =>
+              onChange({
+                ...draft,
+                assetId: assetId || null,
+              })
+            }
+            options={assets.map((asset) => ({
+              value: asset.id,
+              label: asset.name,
+            }))}
+          />
         )}
 
         {draft.type === "transfer" && (
-          <label className="block">
-            <span className="mb-2 block text-xs font-bold text-muted">
-              Ke akun
-            </span>
-            <select
-              value={draft.transferToAccountId ?? ""}
-              onChange={(event) =>
-                onChange({
-                  ...draft,
-                  transferToAccountId: event.target.value || null,
-                })
-              }
-              className="min-h-12 w-full rounded-control border border-border bg-background px-4 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
-            >
-              <option value="">Pilih akun tujuan</option>
-              {accounts
-                .filter((account) => account.id !== draft.accountId)
-                .map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.name}
-                  </option>
-                ))}
-            </select>
-          </label>
+          <ThemedSelect
+            label="Ke akun"
+            value={draft.transferToAccountId ?? ""}
+            placeholder="Pilih akun tujuan"
+            onChange={(transferToAccountId) =>
+              onChange({
+                ...draft,
+                transferToAccountId: transferToAccountId || null,
+              })
+            }
+            options={accounts
+              .filter((account) => account.id !== draft.accountId)
+              .map((account) => ({
+                value: account.id,
+                label: account.name,
+              }))}
+          />
         )}
 
         <label className="block">

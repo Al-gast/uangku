@@ -40,10 +40,34 @@ const typePresentation = {
 
 export function TransactionList({
   transactions,
+  filtered = false,
 }: {
   transactions: CashflowTransactionItem[];
+  filtered?: boolean;
 }) {
   if (transactions.length === 0) {
+    if (filtered) {
+      return (
+        <section className="rounded-card border border-dashed border-border bg-surface p-7 text-center">
+          <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-surface-muted text-xl">
+            ⌕
+          </div>
+          <h2 className="mt-4 font-bold">
+            Tidak ada transaksi yang cocok.
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-muted">
+            Coba ubah atau reset filter.
+          </p>
+          <Link
+            href="/cashflow"
+            className="mt-4 inline-flex min-h-11 items-center rounded-control border border-border px-5 text-sm font-bold text-muted"
+          >
+            Reset filter
+          </Link>
+        </section>
+      );
+    }
+
     return (
       <section className="rounded-card border border-dashed border-accent/40 bg-surface p-7 text-center shadow-card">
         <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-accent-soft text-xl">

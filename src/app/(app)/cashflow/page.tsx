@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CashflowFilterPanel } from "@/components/cashflow/filter-panel";
 import { TransactionList } from "@/components/cashflow/transaction-list";
 import { PageIntro } from "@/components/ui/page-intro";
-import { getCashflowTransactions } from "@/lib/cashflow/data";
+import {
+  countActiveCashflowFilters,
+  getCashflowFilterOptions,
+  getCashflowTransactions,
+  parseCashflowFilters,
+} from "@/lib/cashflow/data";
 
 export const metadata: Metadata = {
   title: "Cashflow",
@@ -12,16 +18,25 @@ type CashflowPageProps = {
   searchParams: Promise<{
     success?: string;
     error?: string;
+    type?: string | string[];
+    account?: string | string[];
+    category?: string | string[];
+    source?: string | string[];
+    range?: string | string[];
   }>;
 };
 
 export default async function CashflowPage({
   searchParams,
 }: CashflowPageProps) {
-  const [{ success, error: queryError }, result] = await Promise.all([
-    searchParams,
-    getCashflowTransactions(),
+  const params = await searchParams;
+  const filters = parseCashflowFilters(params);
+  const activeFilterCount = countActiveCashflowFilters(filters);
+  const [result, filterOptions] = await Promise.all([
+    getCashflowTransactions(filters),
+    getCashflowFilterOptions(),
   ]);
+  const { success, error: queryError } = params;
 
   return (
     <div className="space-y-6">
@@ -61,6 +76,17 @@ export default async function CashflowPage({
         </p>
       </section>
 
+      <CashflowFilterPanel
+        filters={filters}
+        accounts={filterOptions.accounts}
+        categories={filterOptions.categories}
+        activeCount={activeFilterCount}
+      />
+
+      {filterOptions.error && (
+        <p className="text-sm text-muted">{filterOptions.error}</p>
+      )}
+
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-bold">Transaksi terbaru</h2>
@@ -68,7 +94,10 @@ export default async function CashflowPage({
             {result.transactions.length} transaksi
           </span>
         </div>
-        <TransactionList transactions={result.transactions} />
+        <TransactionList
+          transactions={result.transactions}
+          filtered={activeFilterCount > 0}
+        />
       </div>
     </div>
   );

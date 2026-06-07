@@ -9,6 +9,7 @@ import {
   type CashflowActionState,
 } from "@/app/(app)/cashflow/actions";
 import { usePrivacy } from "@/components/providers/privacy-provider";
+import { ThemedSelect } from "@/components/ui/themed-select";
 import { formatPrivateAmount } from "@/lib/format";
 import type {
   CashflowAccountOption,
@@ -222,110 +223,100 @@ export function TransactionForm({
         </label>
       )}
 
-      <label className="block">
-        <span className="mb-2 block text-sm font-bold">
-          {type === "transfer" || type === "investment_buy"
+      <ThemedSelect
+        label={
+          type === "transfer" || type === "investment_buy"
             ? "Dari akun"
             : type === "investment_sell"
               ? "Ke akun"
-              : "Akun"}
-        </span>
-        <select
-          name="account_id"
-          required
-          value={accountId}
-          onChange={(event) => {
-            const nextAccountId = event.target.value;
-            setAccountId(nextAccountId);
-            if (destinationAccountId === nextAccountId) {
-              setDestinationAccountId("");
-            }
-          }}
-          className="min-h-12 w-full rounded-control border border-border bg-surface px-4 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
-        >
-          {accounts.map((account) => (
-            <option key={account.id} value={account.id}>
-              {account.name} ·{" "}
-              {formatPrivateAmount(account.currentBalance, privacyEnabled)}
-            </option>
-          ))}
-        </select>
-      </label>
+              : "Akun"
+        }
+        name="account_id"
+        required
+        value={accountId}
+        onChange={(nextAccountId) => {
+          setAccountId(nextAccountId);
+          if (destinationAccountId === nextAccountId) {
+            setDestinationAccountId("");
+          }
+        }}
+        options={accounts.map((account) => ({
+          value: account.id,
+          label: account.name,
+          description: formatPrivateAmount(
+            account.currentBalance,
+            privacyEnabled,
+          ),
+        }))}
+      />
 
       {type === "transfer" && (
-        <label className="block">
-          <span className="mb-2 block text-sm font-bold">Ke akun</span>
-          <select
-            name="transfer_to_account_id"
-            required
-            value={destinationAccountId}
-            onChange={(event) => setDestinationAccountId(event.target.value)}
-            className="min-h-12 w-full rounded-control border border-border bg-surface px-4 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
-          >
-            <option value="">Pilih akun tujuan</option>
-            {accounts
-              .filter((account) => account.id !== accountId)
-              .map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name} ·{" "}
-                  {formatPrivateAmount(account.currentBalance, privacyEnabled)}
-                </option>
-              ))}
-          </select>
-        </label>
+        <ThemedSelect
+          label="Ke akun"
+          name="transfer_to_account_id"
+          required
+          value={destinationAccountId}
+          placeholder="Pilih akun tujuan"
+          onChange={setDestinationAccountId}
+          options={accounts
+            .filter((account) => account.id !== accountId)
+            .map((account) => ({
+              value: account.id,
+              label: account.name,
+              description: formatPrivateAmount(
+                account.currentBalance,
+                privacyEnabled,
+              ),
+            }))}
+        />
       )}
 
       {investmentType && (
-        <label className="block">
-          <span className="mb-2 block text-sm font-bold">
-            {type === "investment_buy" ? "Ke aset" : "Dari aset"}
-          </span>
-          <select
-            name="asset_id"
-            required
-            value={assetId}
-            onChange={(event) => setAssetId(event.target.value)}
-            className="min-h-12 w-full rounded-control border border-border bg-surface px-4 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
-          >
-            <option value="">Pilih aset investasi</option>
-            {assets.map((asset) => (
-              <option key={asset.id} value={asset.id}>
-                {asset.name} ·{" "}
-                {formatPrivateAmount(asset.currentValue, privacyEnabled)}
-              </option>
-            ))}
-          </select>
-          {assets.length === 0 && (
-            <p className="mt-2 text-sm leading-6 text-muted">
-              Belum ada aset investasi. Tambahkan aset dari Portfolio dulu.
-            </p>
-          )}
-          {type === "investment_sell" && selectedAsset && (
-            <p className="mt-2 text-xs text-muted">
-              Nilai aset saat ini:{" "}
-              {formatPrivateAmount(selectedAsset.currentValue, privacyEnabled)}
-            </p>
-          )}
-        </label>
+        <ThemedSelect
+          label={type === "investment_buy" ? "Ke aset" : "Dari aset"}
+          name="asset_id"
+          required
+          value={assetId}
+          placeholder="Pilih aset investasi"
+          onChange={setAssetId}
+          options={assets.map((asset) => ({
+            value: asset.id,
+            label: asset.name,
+            description: formatPrivateAmount(
+              asset.currentValue,
+              privacyEnabled,
+            ),
+          }))}
+          helperText={
+            assets.length === 0 ? (
+              <span className="text-sm leading-6">
+                Belum ada aset investasi. Tambahkan aset dari Portfolio dulu.
+              </span>
+            ) : type === "investment_sell" && selectedAsset ? (
+              <>
+                Nilai aset saat ini:{" "}
+                {formatPrivateAmount(
+                  selectedAsset.currentValue,
+                  privacyEnabled,
+                )}
+              </>
+            ) : undefined
+          }
+        />
       )}
 
       {!investmentType && (
-        <label className="block">
-          <span className="mb-2 block text-sm font-bold">Kategori</span>
-          <select
-            name="category_id"
-            required
-            value={categoryId}
-            onChange={(event) => setCategoryId(event.target.value)}
-            className="min-h-12 w-full rounded-control border border-border bg-surface px-4 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
-          >
-            {filteredCategories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ThemedSelect
+          label="Kategori"
+          name="category_id"
+          required
+          value={categoryId}
+          onChange={setCategoryId}
+          options={filteredCategories.map((category) => ({
+            value: category.id,
+            label: category.name,
+          }))}
+        />
       )}
 
       <label className="block">

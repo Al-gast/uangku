@@ -1,14 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
   createAccount,
   updateAccount,
   type AccountActionState,
 } from "@/app/(app)/settings/accounts/actions";
+import { ThemedSelect } from "@/components/ui/themed-select";
 import { spendableAccountTypeOptions } from "@/constants/accounts";
-import type { SettingsAccountItem } from "@/lib/accounts/types";
+import type {
+  SettingsAccountItem,
+  SpendableAccountType,
+} from "@/lib/accounts/types";
 
 const initialState: AccountActionState = { error: null };
 
@@ -39,6 +43,9 @@ export function AccountForm({
   const hasTransactions = (account?.transactionCount ?? 0) > 0;
   const action = isEditing ? updateAccount : createAccount;
   const [state, formAction] = useActionState(action, initialState);
+  const [type, setType] = useState<SpendableAccountType>(
+    account?.type ?? "bank_account",
+  );
 
   return (
     <form action={formAction} className="space-y-4">
@@ -62,30 +69,25 @@ export function AccountForm({
         />
       </label>
 
-      <label className="block">
-        <span className="mb-2 block text-sm font-bold">Jenis akun</span>
+      <div>
         {hasTransactions && account && (
           <input type="hidden" name="type" value={account.type} />
         )}
-        <select
+        <ThemedSelect
+          label="Jenis akun"
           name="type"
           required
           disabled={hasTransactions}
-          defaultValue={account?.type ?? "bank_account"}
-          className="min-h-12 w-full rounded-control border border-border bg-background px-4 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-muted"
-        >
-          {spendableAccountTypeOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.icon} {option.label}
-            </option>
-          ))}
-        </select>
-        {hasTransactions && (
-          <p className="mt-2 text-xs leading-5 text-muted">
-            Jenis akun tidak bisa diubah karena akun ini sudah punya transaksi.
-          </p>
-        )}
-      </label>
+          value={type}
+          onChange={(value) => setType(value as SpendableAccountType)}
+          options={spendableAccountTypeOptions}
+          helperText={
+            hasTransactions
+              ? "Jenis akun tidak bisa diubah karena akun ini sudah punya transaksi."
+              : undefined
+          }
+        />
+      </div>
 
       {!isEditing && (
         <label className="block">

@@ -1,14 +1,21 @@
 import "server-only";
 
 import { notFound } from "next/navigation";
+import { spendableAccountTypes } from "@/constants/accounts";
+import { getJakartaMonthRange } from "@/lib/date";
 import { createClient } from "@/lib/supabase/server";
 import type {
   CashflowAccountOption,
   CashflowAssetOption,
   CashflowCategoryOption,
+  CashflowDateRange,
+  CashflowFilterAccountOption,
+  CashflowFilterCategoryOption,
+  CashflowFilters,
   CashflowTransactionItem,
   ManualTransactionType,
 } from "@/lib/cashflow/types";
+import { cashflowDateRanges } from "@/lib/cashflow/types";
 
 type TransactionRow = {
   id: string;
@@ -25,6 +32,100 @@ type TransactionRow = {
   asset_id: string | null;
   category_id: string;
 };
+
+const manualTransactionTypes: ManualTransactionType[] = [
+  "income",
+  "expense",
+  "transfer",
+  "investment_buy",
+  "investment_sell",
+];
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function isManualTransactionType(
+  value: string | undefined,
+): value is ManualTransactionType {
+  return manualTransactionTypes.includes(value as ManualTransactionType);
+}
+
+function isCashflowDateRange(
+  value: string | undefined,
+): value is CashflowDateRange {
+  return cashflowDateRanges.includes(value as CashflowDateRange);
+}
+
+function isUuid(value: string | undefined) {
+  return Boolean(value && uuidPattern.test(value));
+}
+
+function getJakartaDate(now = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Asia/Jakarta",
+  }).format(now);
+}
+
+function shiftDate(date: string, days: number) {
+  const shifted = new Date(`${date}T00:00:00Z`);
+  shifted.setUTCDate(shifted.getUTCDate() + days);
+  return shifted.toISOString().slice(0, 10);
+}
+
+function getDateBounds(range: CashflowDateRange) {
+  if (range === "all") {
+    return null;
+  }
+
+  if (range === "this_month") {
+    const month = getJakartaMonthRange();
+    return { start: month.start, end: month.end };
+  }
+
+  const today = getJakartaDate();
+  const daysAgo = range === "last_7_days" ? 6 : 29;
+  const startDate = shiftDate(today, -daysAgo);
+  const endDate = shiftDate(today, 1);
+
+  return {
+    start: new Date(`${startDate}T00:00:00+07:00`).toISOString(),
+    end: new Date(`${endDate}T00:00:00+07:00`).toISOString(),
+  };
+}
+
+export function parseCashflowFilters(
+  params: Record<string, string | string[] | undefined>,
+): CashflowFilters {
+  const type = firstParam(params.type);
+  const accountId = firstParam(params.account);
+  const categoryId = firstParam(params.category);
+  const source = firstParam(params.source);
+  const range = firstParam(params.range);
+
+  return {
+    type: isManualTransactionType(type) ? type : null,
+    accountId: isUuid(accountId) ? accountId! : null,
+    categoryId: isUuid(categoryId) ? categoryId! : null,
+    source: source === "manual" || source === "chat" ? source : null,
+    range: isCashflowDateRange(range) ? range : "all",
+  };
+}
+
+export function countActiveCashflowFilters(filters: CashflowFilters) {
+  return [
+    filters.type,
+    filters.accountId,
+    filters.categoryId,
+    filters.source,
+    filters.range === "all" ? null : filters.range,
+  ].filter(Boolean).length;
+}
 
 export async function ensureManualCashflowCategories() {
   const supabase = await createClient();
@@ -96,6 +197,46 @@ export async function getCashflowFormOptions() {
         category.transaction_type as CashflowCategoryOption["transactionType"],
     })),
     setupError: null,
+  };
+}
+
+export async function getCashflowFilterOptions() {
+  const supabase = await createClient();
+  const [accountResult, categoryResult] = await Promise.all([
+    supabase
+      .from("accounts")
+      .select("id,name,is_active")
+      .in("type", spendableAccountTypes)
+      .order("is_active", { ascending: false })
+      .order("name"),
+    supabase
+      .from("categories")
+      .select("id,name,is_active")
+      .in("transaction_type", [
+        "income",
+        "expense",
+        "transfer",
+        "investment",
+      ])
+      .order("is_active", { ascending: false })
+      .order("name"),
+  ]);
+
+  return {
+    accounts: (accountResult.data ?? []).map((account) => ({
+      id: account.id,
+      name: account.name,
+      isActive: account.is_active,
+    })) as CashflowFilterAccountOption[],
+    categories: (categoryResult.data ?? []).map((category) => ({
+      id: category.id,
+      name: category.name,
+      isActive: category.is_active,
+    })) as CashflowFilterCategoryOption[],
+    error:
+      accountResult.error || categoryResult.error
+        ? "Pilihan filter belum bisa dimuat."
+        : null,
   };
 }
 
@@ -181,9 +322,9 @@ export async function mapTransactionRows(
   }));
 }
 
-export async function getCashflowTransactions() {
+export async function getCashflowTransactions(filters?: CashflowFilters) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("transactions")
     .select(
       "id,source,type,amount,admin_fee_amount,admin_fee_category_id,transaction_date,merchant,notes,account_id,transfer_to_account_id,asset_id,category_id",
@@ -198,6 +339,36 @@ export async function getCashflowTransactions() {
     .in("source", ["manual", "chat"])
     .order("transaction_date", { ascending: false })
     .order("created_at", { ascending: false });
+
+  if (filters?.type) {
+    query = query.eq("type", filters.type);
+  }
+
+  if (filters?.source) {
+    query = query.eq("source", filters.source);
+  }
+
+  if (filters?.accountId) {
+    query = query.or(
+      `account_id.eq.${filters.accountId},transfer_to_account_id.eq.${filters.accountId}`,
+    );
+  }
+
+  if (filters?.categoryId) {
+    query = query.or(
+      `category_id.eq.${filters.categoryId},admin_fee_category_id.eq.${filters.categoryId}`,
+    );
+  }
+
+  const dateBounds = getDateBounds(filters?.range ?? "all");
+
+  if (dateBounds) {
+    query = query
+      .gte("transaction_date", dateBounds.start)
+      .lt("transaction_date", dateBounds.end);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return {

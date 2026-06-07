@@ -28,6 +28,35 @@ export type CashflowCategoryOption = {
   transactionType: "income" | "expense" | "transfer" | "investment";
 };
 
+export const cashflowDateRanges = [
+  "all",
+  "this_month",
+  "last_7_days",
+  "last_30_days",
+] as const;
+
+export type CashflowDateRange = (typeof cashflowDateRanges)[number];
+
+export type CashflowFilters = {
+  type: ManualTransactionType | null;
+  accountId: string | null;
+  categoryId: string | null;
+  source: CashflowTransactionItem["source"] | null;
+  range: CashflowDateRange;
+};
+
+export type CashflowFilterAccountOption = {
+  id: string;
+  name: string;
+  isActive: boolean;
+};
+
+export type CashflowFilterCategoryOption = {
+  id: string;
+  name: string;
+  isActive: boolean;
+};
+
 export type CashflowTransactionItem = {
   id: string;
   source: Extract<TransactionSource, "manual" | "chat">;

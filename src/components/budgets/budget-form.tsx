@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
   createBudget,
   updateBudget,
   type BudgetActionState,
 } from "@/app/(app)/settings/budgets/actions";
+import { ThemedSelect } from "@/components/ui/themed-select";
 import type { BudgetCategoryOption } from "@/lib/budgets/types";
 
 type BudgetFormProps = {
@@ -38,6 +39,9 @@ function SubmitButton() {
 export function BudgetForm({ categories, budget }: BudgetFormProps) {
   const action = budget ? updateBudget : createBudget;
   const [state, formAction] = useActionState(action, initialState);
+  const [categoryId, setCategoryId] = useState(
+    budget?.categoryId ?? categories[0]?.id ?? "",
+  );
 
   return (
     <form action={formAction} className="space-y-5">
@@ -49,21 +53,17 @@ export function BudgetForm({ categories, budget }: BudgetFormProps) {
         </p>
       )}
 
-      <label className="block">
-        <span className="mb-2 block text-sm font-bold">Kategori</span>
-        <select
-          name="category_id"
-          required
-          defaultValue={budget?.categoryId ?? categories[0]?.id ?? ""}
-          className="min-h-12 w-full rounded-control border border-border bg-surface px-4 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
-        >
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <ThemedSelect
+        label="Kategori"
+        name="category_id"
+        required
+        value={categoryId}
+        onChange={setCategoryId}
+        options={categories.map((category) => ({
+          value: category.id,
+          label: category.name,
+        }))}
+      />
 
       <label className="block">
         <span className="mb-2 block text-sm font-bold">Nominal budget</span>
