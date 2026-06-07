@@ -42,6 +42,7 @@ Database migrations are stored at:
 ```text
 supabase/migrations/202606060001_initial_schema.sql
 supabase/migrations/202606060002_onboarding.sql
+supabase/migrations/202606070001_manual_cashflow.sql
 ```
 
 The Supabase CLI is not required. To apply it manually:
@@ -50,7 +51,9 @@ The Supabase CLI is not required. To apply it manually:
 2. Open **SQL Editor** in the Supabase dashboard.
 3. Paste and run each migration in filename order.
 4. Run `202606060002_onboarding.sql` after the initial schema.
-5. Confirm all tables show RLS as enabled in **Table Editor**.
+5. Run `202606070001_manual_cashflow.sql` for transaction CRUD and atomic
+   account balance updates.
+6. Confirm all tables show RLS as enabled in **Table Editor**.
 
 If the repo is linked with the Supabase CLI later, apply migrations with:
 
@@ -96,5 +99,7 @@ authenticated Postgres function. The browser never supplies `user_id`.
 This phase includes authentication, schema/RLS, and onboarding for initial
 accounts, balances, and optional budgets.
 
-Transaction CRUD, calculations, budget behavior, portfolio behavior, chat
-parsing, OCR, export, and PWA enhancements remain intentionally deferred.
+Manual income, expense, transfer, transaction editing/deletion, and atomic
+account balance updates are available. Dashboard calculations, budget
+analytics, portfolio behavior, chat parsing, OCR, export, and PWA enhancements
+remain intentionally deferred.
