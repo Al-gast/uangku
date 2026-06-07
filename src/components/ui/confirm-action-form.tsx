@@ -66,7 +66,7 @@ export function ConfirmActionForm({
         ref={dialogRef}
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="w-[calc(100%-2rem)] max-w-sm rounded-card border border-border bg-surface p-0 text-foreground shadow-card backdrop:bg-black/45"
+        className="max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-sm overflow-y-auto rounded-card border border-border bg-surface p-0 text-foreground shadow-card backdrop:bg-black/45"
       >
         <div className="p-5">
           <h2 id={titleId} className="text-lg font-bold">

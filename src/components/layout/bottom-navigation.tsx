@@ -18,7 +18,7 @@ export function BottomNavigation() {
   return (
     <nav
       aria-label="Navigasi utama"
-      className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[480px] border-t border-border bg-surface/95 px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_32px_var(--overlay)] backdrop-blur-xl"
+      className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[480px] border-t border-border bg-surface/95 px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_32px_var(--overlay)] backdrop-blur-xl sm:bottom-6 sm:rounded-b-[2rem]"
     >
       <ul className="grid grid-cols-5">
         {items.map((item) => {
