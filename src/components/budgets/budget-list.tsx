@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { deleteBudget } from "@/app/(app)/settings/budgets/actions";
-import { formatIdr } from "@/lib/format";
+import { usePrivacy } from "@/components/providers/privacy-provider";
+import { MoneyText, PrivateText } from "@/components/ui/money-text";
 import type { BudgetProgressItem } from "@/lib/budgets/types";
 
 export function BudgetList({
@@ -8,6 +11,8 @@ export function BudgetList({
 }: {
   budgets: BudgetProgressItem[];
 }) {
+  const { privacyEnabled } = usePrivacy();
+
   if (budgets.length === 0) {
     return (
       <section className="rounded-card border border-dashed border-accent/40 bg-surface p-7 text-center shadow-card">
@@ -36,7 +41,11 @@ export function BudgetList({
                 <h2 className="font-bold">{budget.categoryName}</h2>
                 <p className="mt-1 text-xs text-muted">Budget bulanan</p>
               </div>
-              <p className="text-sm font-bold">{formatIdr(budget.amount)}</p>
+              <MoneyText
+                as="p"
+                value={budget.amount}
+                className="text-sm font-bold"
+              />
             </div>
 
             <div className="mt-4 h-2 overflow-hidden rounded-full bg-surface-muted">
@@ -44,28 +53,34 @@ export function BudgetList({
                 className={`h-full rounded-full ${
                   isWarning ? "bg-expense" : "bg-accent"
                 }`}
-                style={{ width: `${barWidth}%` }}
+                style={{ width: privacyEnabled ? "0%" : `${barWidth}%` }}
               />
             </div>
 
             <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
               <div>
                 <p className="text-muted">Terpakai</p>
-                <p className="mt-1 font-bold">{formatIdr(budget.spent)}</p>
+                <MoneyText
+                  as="p"
+                  value={budget.spent}
+                  className="mt-1 font-bold"
+                />
               </div>
               <div>
                 <p className="text-muted">Sisa</p>
-                <p
+                <MoneyText
+                  as="p"
+                  value={budget.remaining}
                   className={`mt-1 font-bold ${
                     budget.remaining < 0 ? "text-expense" : ""
                   }`}
-                >
-                  {formatIdr(budget.remaining)}
-                </p>
+                />
               </div>
               <div className="text-right">
                 <p className="text-muted">Progress</p>
-                <p className="mt-1 font-bold">{Math.round(progress)}%</p>
+                <p className="mt-1 font-bold">
+                  <PrivateText value={`${Math.round(progress)}%`} />
+                </p>
               </div>
             </div>
 

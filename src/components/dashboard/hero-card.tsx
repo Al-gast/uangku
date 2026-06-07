@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatIdr } from "@/lib/format";
+import { MoneyText } from "@/components/ui/money-text";
 
 type HeroCardProps = {
   monthLabel: string;
@@ -15,9 +15,11 @@ export function HeroCard({ monthLabel, income, expense }: HeroCardProps) {
       <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] opacity-80">
         Sisa bulan ini · {monthLabel}
       </p>
-      <p className="mt-3 text-3xl font-extrabold tracking-[-0.04em]">
-        {formatIdr(remaining)}
-      </p>
+      <MoneyText
+        as="p"
+        value={remaining}
+        className="mt-3 text-3xl font-extrabold tracking-[-0.04em]"
+      />
       {remaining < 0 && (
         <p className="mt-2 text-xs font-medium opacity-85">
           Pengeluaran melebihi pemasukan bulan ini
@@ -27,11 +29,19 @@ export function HeroCard({ monthLabel, income, expense }: HeroCardProps) {
       <div className="mt-5 grid grid-cols-2 gap-2">
         <div className="rounded-2xl bg-white/15 p-3 backdrop-blur-sm">
           <p className="text-xs font-semibold opacity-80">↑ Pemasukan</p>
-          <p className="mt-1 text-base font-bold">{formatIdr(income)}</p>
+          <MoneyText
+            as="p"
+            value={income}
+            className="mt-1 text-base font-bold"
+          />
         </div>
         <div className="rounded-2xl bg-white/15 p-3 backdrop-blur-sm">
           <p className="text-xs font-semibold opacity-80">↓ Pengeluaran</p>
-          <p className="mt-1 text-base font-bold">{formatIdr(expense)}</p>
+          <MoneyText
+            as="p"
+            value={expense}
+            className="mt-1 text-base font-bold"
+          />
         </div>
       </div>
     </section>

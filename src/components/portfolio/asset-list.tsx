@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatIdr } from "@/lib/format";
+import { MoneyText } from "@/components/ui/money-text";
 import type {
   PortfolioAccountItem,
   PortfolioAssetItem,
@@ -77,9 +77,11 @@ export function AssetList({
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-sm font-bold">
-                    {formatIdr(account.currentBalance)}
-                  </p>
+                  <MoneyText
+                    as="p"
+                    value={account.currentBalance}
+                    className="text-sm font-bold"
+                  />
                   <span className="text-xs text-muted">🔒</span>
                 </div>
               </div>
@@ -113,9 +115,11 @@ export function AssetList({
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="text-sm font-bold">
-                      {formatIdr(asset.currentValue)}
-                    </p>
+                    <MoneyText
+                      as="p"
+                      value={asset.currentValue}
+                      className="text-sm font-bold"
+                    />
                     <span className="text-sm text-muted">›</span>
                   </div>
                 </Link>

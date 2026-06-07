@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatIdr } from "@/lib/format";
+import { MoneyText } from "@/components/ui/money-text";
 import type { PortfolioSummary } from "@/lib/portfolio/types";
 
 export function DashboardPortfolioSummary({
@@ -30,21 +30,27 @@ export function DashboardPortfolioSummary({
         </p>
       ) : (
         <>
-          <p className="mt-4 text-2xl font-extrabold">
-            {formatIdr(summary.netWorth)}
-          </p>
+          <MoneyText
+            as="p"
+            value={summary.netWorth}
+            className="mt-4 text-2xl font-extrabold"
+          />
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div className="rounded-2xl bg-surface-muted p-3">
               <p className="text-xs text-muted">Total aset</p>
-              <p className="mt-1 truncate text-sm font-bold">
-                {formatIdr(summary.totalAsset)}
-              </p>
+              <MoneyText
+                as="p"
+                value={summary.totalAsset}
+                className="mt-1 truncate text-sm font-bold"
+              />
             </div>
             <div className="rounded-2xl bg-surface-muted p-3">
               <p className="text-xs text-muted">Total hutang</p>
-              <p className="mt-1 truncate text-sm font-bold text-debt">
-                {formatIdr(summary.totalLiability)}
-              </p>
+              <MoneyText
+                as="p"
+                value={summary.totalLiability}
+                className="mt-1 truncate text-sm font-bold text-debt"
+              />
             </div>
           </div>
         </>

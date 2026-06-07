@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
+import { getAppUserSettings } from "@/lib/settings/data";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function MainAppLayout({
@@ -20,14 +21,25 @@ export default async function MainAppLayout({
     redirect("/login");
   }
 
-  const { data: settings, error } = await supabase
-    .from("user_settings")
-    .select("onboarding_completed")
-    .maybeSingle();
+  const [{ data: settings, error }, appSettings] = await Promise.all([
+    supabase
+      .from("user_settings")
+      .select("onboarding_completed")
+      .maybeSingle(),
+    getAppUserSettings(),
+  ]);
 
   if (error || !settings?.onboarding_completed) {
     redirect("/onboarding");
   }
 
-  return <AppShell>{children}</AppShell>;
+  return (
+    <AppShell
+      themeMode={appSettings.themeMode}
+      accentTheme={appSettings.accentTheme}
+      privacyModeEnabled={appSettings.privacyModeEnabled}
+    >
+      {children}
+    </AppShell>
+  );
 }

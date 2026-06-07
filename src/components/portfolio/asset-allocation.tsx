@@ -1,5 +1,8 @@
+"use client";
+
 import { DonutChart } from "@/components/portfolio/donut-chart";
-import { formatIdr } from "@/lib/format";
+import { usePrivacy } from "@/components/providers/privacy-provider";
+import { MoneyText, PrivateText } from "@/components/ui/money-text";
 import type { AllocationSlice } from "@/lib/portfolio/types";
 
 export function AssetAllocation({
@@ -9,6 +12,8 @@ export function AssetAllocation({
   allocation: AllocationSlice[];
   totalAsset: number;
 }) {
+  const { privacyEnabled } = usePrivacy();
+
   if (totalAsset === 0) {
     return (
       <section className="rounded-card border border-dashed border-border bg-surface p-5 text-center">
@@ -27,7 +32,7 @@ export function AssetAllocation({
   return (
     <section className="rounded-card border border-border bg-surface p-5 shadow-card">
       <h2 className="text-lg font-bold">Alokasi Aset</h2>
-      <div className="mt-4">
+      <div className={`mt-4 ${privacyEnabled ? "opacity-20 blur-sm" : ""}`}>
         <DonutChart slices={allocation} />
       </div>
       <div className="mt-4 border-t border-border pt-3">
@@ -47,9 +52,12 @@ export function AssetAllocation({
             </div>
             <div className="shrink-0 text-right text-sm">
               <span className="font-bold">
-                {slice.percentage.toFixed(0)}%
+                <PrivateText value={`${slice.percentage.toFixed(0)}%`} />
               </span>
-              <span className="ml-2 text-muted">{formatIdr(slice.value)}</span>
+              <MoneyText
+                value={slice.value}
+                className="ml-2 text-muted"
+              />
             </div>
           </div>
         ))}

@@ -6,6 +6,7 @@ import { EmptyHero, HeroCard } from "@/components/dashboard/hero-card";
 import { DashboardPortfolioSummary } from "@/components/dashboard/portfolio-summary";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { StatCards } from "@/components/dashboard/stat-cards";
+import { PrivacyToggle } from "@/components/settings/privacy-toggle";
 import { getBudgetWarnings } from "@/lib/budgets/data";
 import { getDashboardData } from "@/lib/dashboard/data";
 import { getPortfolioSummary } from "@/lib/portfolio/data";
@@ -26,13 +27,16 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">
-          {data.monthLabel}
-        </p>
-        <h1 className="mt-2 text-3xl font-bold tracking-[-0.04em]">
-          {greeting}
-        </h1>
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">
+            {data.monthLabel}
+          </p>
+          <h1 className="mt-2 text-3xl font-bold tracking-[-0.04em]">
+            {greeting}
+          </h1>
+        </div>
+        <PrivacyToggle compact />
       </header>
 
       {data.dashboardError ? (

@@ -6,6 +6,10 @@ export function formatIdr(value: number) {
   }).format(value);
 }
 
+export function formatPrivateAmount(value: number, privacyEnabled: boolean) {
+  return privacyEnabled ? "Rp••••••" : formatIdr(value);
+}
+
 export function formatDateId(value: string) {
   return new Intl.DateTimeFormat("id-ID", {
     day: "numeric",

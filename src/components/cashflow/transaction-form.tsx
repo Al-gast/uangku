@@ -8,7 +8,8 @@ import {
   updateTransaction,
   type CashflowActionState,
 } from "@/app/(app)/cashflow/actions";
-import { formatIdr } from "@/lib/format";
+import { usePrivacy } from "@/components/providers/privacy-provider";
+import { formatPrivateAmount } from "@/lib/format";
 import type {
   CashflowAccountOption,
   CashflowCategoryOption,
@@ -58,6 +59,7 @@ export function TransactionForm({
   defaultDate,
   transaction,
 }: TransactionFormProps) {
+  const { privacyEnabled } = usePrivacy();
   const isEditing = Boolean(transaction);
   const action = isEditing ? updateTransaction : createTransaction;
   const [state, formAction] = useActionState(action, initialState);
@@ -179,7 +181,8 @@ export function TransactionForm({
         >
           {accounts.map((account) => (
             <option key={account.id} value={account.id}>
-              {account.name} · {formatIdr(account.currentBalance)}
+              {account.name} ·{" "}
+              {formatPrivateAmount(account.currentBalance, privacyEnabled)}
             </option>
           ))}
         </select>
@@ -200,7 +203,8 @@ export function TransactionForm({
               .filter((account) => account.id !== accountId)
               .map((account) => (
                 <option key={account.id} value={account.id}>
-                  {account.name} · {formatIdr(account.currentBalance)}
+                  {account.name} ·{" "}
+                  {formatPrivateAmount(account.currentBalance, privacyEnabled)}
                 </option>
               ))}
           </select>

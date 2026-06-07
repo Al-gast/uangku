@@ -1,4 +1,7 @@
-import { formatIdr } from "@/lib/format";
+"use client";
+
+import { usePrivacy } from "@/components/providers/privacy-provider";
+import { MoneyText, PrivateText } from "@/components/ui/money-text";
 
 type StatCardsProps = {
   income: number;
@@ -7,6 +10,7 @@ type StatCardsProps = {
 };
 
 export function StatCards({ income, expense, monthLabel }: StatCardsProps) {
+  const { privacyEnabled } = usePrivacy();
   const cashflow = income - expense;
   const rawSavingRate = income > 0 ? (cashflow / income) * 100 : null;
   const displaySavingRate =
@@ -20,7 +24,11 @@ export function StatCards({ income, expense, monthLabel }: StatCardsProps) {
           Saving Rate
         </p>
         <p className="mt-2 text-2xl font-extrabold tracking-tight">
-          {displaySavingRate === null ? "--" : `${displaySavingRate}%`}
+          {displaySavingRate === null ? (
+            "--"
+          ) : (
+            <PrivateText value={`${displaySavingRate}%`} />
+          )}
         </p>
         {displaySavingRate === null ? (
           <p className="mt-2 text-xs text-muted">Belum ada pemasukan</p>
@@ -28,7 +36,7 @@ export function StatCards({ income, expense, monthLabel }: StatCardsProps) {
           <div className="mt-3 h-1 overflow-hidden rounded-full bg-surface-muted">
             <div
               className="h-full rounded-full bg-accent"
-              style={{ width: `${progress}%` }}
+              style={{ width: privacyEnabled ? "0%" : `${progress}%` }}
             />
           </div>
         )}
@@ -38,14 +46,14 @@ export function StatCards({ income, expense, monthLabel }: StatCardsProps) {
         <p className="text-[0.65rem] font-bold uppercase tracking-wider text-muted">
           Cashflow
         </p>
-        <p
+        <MoneyText
+          as="p"
+          value={cashflow}
+          sign={cashflow > 0 ? "+" : ""}
           className={`mt-2 break-words text-xl font-extrabold tracking-tight ${
             cashflow >= 0 ? "text-income" : "text-expense"
           }`}
-        >
-          {cashflow > 0 ? "+" : ""}
-          {formatIdr(cashflow)}
-        </p>
+        />
         <p className="mt-2 text-xs text-muted">{monthLabel}</p>
       </section>
     </div>

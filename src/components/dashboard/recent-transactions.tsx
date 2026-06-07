@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { formatCompactDateId, formatIdr } from "@/lib/format";
+import { MoneyText } from "@/components/ui/money-text";
+import { formatCompactDateId } from "@/lib/format";
 import type { CashflowTransactionItem } from "@/lib/cashflow/types";
 
 const transactionStyles = {
@@ -71,12 +72,12 @@ export function RecentTransactions({
                     </p>
                   </div>
                 </div>
-                <p
+                <MoneyText
+                  as="p"
+                  value={transaction.amount}
+                  sign={styles.sign}
                   className={`shrink-0 text-sm font-bold ${styles.amount}`}
-                >
-                  {styles.sign}
-                  {formatIdr(transaction.amount)}
-                </p>
+                />
               </div>
             );
           })}

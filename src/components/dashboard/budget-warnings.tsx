@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
-import { formatIdr } from "@/lib/format";
+import { usePrivacy } from "@/components/providers/privacy-provider";
+import { formatPrivateAmount } from "@/lib/format";
 import type { BudgetWarning } from "@/lib/budgets/types";
 
 export function BudgetWarnings({
@@ -7,6 +10,8 @@ export function BudgetWarnings({
 }: {
   warnings: BudgetWarning[];
 }) {
+  const { privacyEnabled } = usePrivacy();
+
   if (warnings.length === 0) {
     return null;
   }
@@ -33,15 +38,19 @@ export function BudgetWarnings({
             >
               <p className="text-sm font-semibold leading-6 text-foreground">
                 {exceeded
-                  ? `Budget ${warning.categoryName.toLowerCase()} kamu sudah melewati batas sebesar ${formatIdr(
+                  ? `Budget ${warning.categoryName.toLowerCase()} kamu sudah melewati batas sebesar ${formatPrivateAmount(
                       Math.abs(warning.remaining),
+                      privacyEnabled,
                     )}.`
-                  : `Budget ${warning.categoryName.toLowerCase()} kamu tinggal ${formatIdr(
+                  : `Budget ${warning.categoryName.toLowerCase()} kamu tinggal ${formatPrivateAmount(
                       warning.remaining,
+                      privacyEnabled,
                     )} bulan ini.`}
               </p>
               <p className="mt-1 text-xs font-bold text-expense">
-                {Math.round(warning.progressPercent)}% terpakai
+                {privacyEnabled
+                  ? "••% terpakai"
+                  : `${Math.round(warning.progressPercent)}% terpakai`}
               </p>
             </article>
           );

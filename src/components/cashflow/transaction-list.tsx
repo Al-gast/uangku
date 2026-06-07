@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { deleteTransaction } from "@/app/(app)/cashflow/actions";
-import { formatDateId, formatIdr } from "@/lib/format";
+import { MoneyText } from "@/components/ui/money-text";
+import { formatDateId } from "@/lib/format";
 import type { CashflowTransactionItem } from "@/lib/cashflow/types";
 
 const typePresentation = {
@@ -81,12 +82,12 @@ export function TransactionList({
                   {accountCopy} · {transaction.categoryName}
                 </p>
               </div>
-              <p
+              <MoneyText
+                as="p"
+                value={transaction.amount}
+                sign={presentation.sign}
                 className={`shrink-0 text-right font-extrabold ${presentation.className}`}
-              >
-                {presentation.sign}
-                {formatIdr(transaction.amount)}
-              </p>
+              />
             </div>
 
             {transaction.notes && (

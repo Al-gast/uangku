@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
-import { formatDateId, formatIdr } from "@/lib/format";
+import { usePrivacy } from "@/components/providers/privacy-provider";
+import { MoneyText } from "@/components/ui/money-text";
+import { formatDateId } from "@/lib/format";
 import type { PortfolioLiabilityItem } from "@/lib/portfolio/types";
 
 function dueDateCopy(dueDate: string) {
@@ -26,6 +30,8 @@ export function LiabilityList({
   liabilities: PortfolioLiabilityItem[];
   totalLiability: number;
 }) {
+  const { privacyEnabled } = usePrivacy();
+
   return (
     <section>
       <div className="mb-3 flex items-center justify-between">
@@ -65,13 +71,16 @@ export function LiabilityList({
                 >
                   <h3 className="text-sm font-bold">{liability.name}</h3>
                   <p className="mt-2 text-xs text-muted">
-                    Sisa {formatIdr(liability.remainingAmount)} dari{" "}
-                    {formatIdr(liability.amount)}
+                    Sisa{" "}
+                    <MoneyText value={liability.remainingAmount} /> dari{" "}
+                    <MoneyText value={liability.amount} />
                   </p>
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-muted">
                     <div
                       className="h-full rounded-full bg-debt transition-[width] duration-300"
-                      style={{ width: `${progress}%` }}
+                      style={{
+                        width: privacyEnabled ? "0%" : `${progress}%`,
+                      }}
                     />
                   </div>
                   {due && (
@@ -94,9 +103,10 @@ export function LiabilityList({
           </div>
           <div className="mt-3 flex items-center justify-end gap-2">
             <span className="text-sm text-muted">Total hutang</span>
-            <span className="font-bold text-debt">
-              {formatIdr(totalLiability)}
-            </span>
+            <MoneyText
+              value={totalLiability}
+              className="font-bold text-debt"
+            />
           </div>
         </>
       )}

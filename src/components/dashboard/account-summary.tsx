@@ -1,4 +1,4 @@
-import { formatIdr } from "@/lib/format";
+import { MoneyText } from "@/components/ui/money-text";
 import type { DashboardAccount } from "@/lib/dashboard/types";
 
 const accountIcons: Record<DashboardAccount["type"], string> = {
@@ -44,15 +44,17 @@ export function AccountSummary({ accounts, error }: AccountSummaryProps) {
                 <p className="mt-2 truncate text-sm font-semibold">
                   {account.name}
                 </p>
-                <p className="mt-1 text-base font-bold">
-                  {formatIdr(account.currentBalance)}
-                </p>
+                <MoneyText
+                  as="p"
+                  value={account.currentBalance}
+                  className="mt-1 text-base font-bold"
+                />
               </article>
             ))}
           </div>
           <div className="mt-2 flex items-center justify-end gap-2">
             <span className="text-sm text-muted">Total</span>
-            <span className="font-bold">{formatIdr(total)}</span>
+            <MoneyText value={total} className="font-bold" />
           </div>
         </>
       )}
