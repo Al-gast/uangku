@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { deleteBudget } from "@/app/(app)/settings/budgets/actions";
 import { usePrivacy } from "@/components/providers/privacy-provider";
+import { ConfirmActionForm } from "@/components/ui/confirm-action-form";
 import { MoneyText, PrivateText } from "@/components/ui/money-text";
 import type { BudgetProgressItem } from "@/lib/budgets/types";
 
@@ -91,12 +92,14 @@ export function BudgetList({
               >
                 Edit
               </Link>
-              <form action={deleteBudget}>
-                <input type="hidden" name="budget_id" value={budget.id} />
-                <button className="text-sm font-bold text-expense">
-                  Hapus
-                </button>
-              </form>
+              <ConfirmActionForm
+                submitAction={deleteBudget}
+                fields={[{ name: "budget_id", value: budget.id }]}
+                buttonLabel="Hapus"
+                title="Hapus budget ini?"
+                description="Transaksi kamu tetap aman. Hanya aturan budget ini yang dihapus."
+                confirmLabel="Hapus Budget"
+              />
             </div>
           </article>
         );

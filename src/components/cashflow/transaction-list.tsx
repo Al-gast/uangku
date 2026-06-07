@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { deleteTransaction } from "@/app/(app)/cashflow/actions";
 import { MoneyText } from "@/components/ui/money-text";
+import { ConfirmActionForm } from "@/components/ui/confirm-action-form";
 import { formatDateId } from "@/lib/format";
 import type { CashflowTransactionItem } from "@/lib/cashflow/types";
 
@@ -128,16 +129,16 @@ export function TransactionList({
               >
                 Edit
               </Link>
-              <form action={deleteTransaction}>
-                <input
-                  type="hidden"
-                  name="transaction_id"
-                  value={transaction.id}
-                />
-                <button className="text-sm font-bold text-expense">
-                  Hapus
-                </button>
-              </form>
+              <ConfirmActionForm
+                submitAction={deleteTransaction}
+                fields={[
+                  { name: "transaction_id", value: transaction.id },
+                ]}
+                buttonLabel="Hapus"
+                title="Hapus transaksi ini?"
+                description="Saldo akun akan dikembalikan sesuai efek transaksi ini."
+                confirmLabel="Hapus Transaksi"
+              />
             </div>
           </article>
         );

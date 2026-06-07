@@ -155,6 +155,29 @@ export async function deleteAsset(formData: FormData) {
     );
   }
 
+  const { data: transactions, error: transactionError } = await supabase
+    .from("transactions")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("asset_id", assetId)
+    .limit(1);
+
+  if (transactionError) {
+    redirect(
+      `/portfolio?error=${encodeURIComponent(
+        "Histori aset belum bisa diperiksa.",
+      )}`,
+    );
+  }
+
+  if (transactions?.length) {
+    redirect(
+      `/portfolio?error=${encodeURIComponent(
+        "Aset ini sudah punya histori transaksi investasi, jadi tidak bisa dihapus. Kamu bisa mengubah nilainya menjadi Rp0 atau biarkan sebagai histori.",
+      )}`,
+    );
+  }
+
   const { error } = await supabase
     .from("assets")
     .delete()

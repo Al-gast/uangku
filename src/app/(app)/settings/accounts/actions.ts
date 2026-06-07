@@ -211,7 +211,7 @@ export async function deleteAccount(formData: FormData) {
   if (transactions?.length) {
     redirect(
       `/settings/accounts?error=${encodeURIComponent(
-        "Akun yang sudah punya transaksi tidak bisa dihapus. Nonaktifkan saja.",
+        "Akun ini sudah punya transaksi, jadi tidak bisa dihapus. Kamu bisa menonaktifkannya agar tidak muncul di pilihan transaksi baru.",
       )}`,
     );
   }

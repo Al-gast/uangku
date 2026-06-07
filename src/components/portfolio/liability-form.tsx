@@ -9,6 +9,7 @@ import {
   updateLiability,
   type PortfolioActionState,
 } from "@/app/(app)/portfolio/actions";
+import { ConfirmActionForm } from "@/components/ui/confirm-action-form";
 import type { PortfolioLiabilityItem } from "@/lib/portfolio/types";
 
 const initialState: PortfolioActionState = { error: null };
@@ -146,27 +147,15 @@ export function LiabilityForm({
       </form>
 
       {liability && (
-        <form
-          action={deleteLiability}
-          onSubmit={(event) => {
-            if (
-              !window.confirm(
-                `Yakin hapus ${liability.name}? Data ini tidak bisa dikembalikan.`,
-              )
-            ) {
-              event.preventDefault();
-            }
-          }}
-        >
-          <input
-            type="hidden"
-            name="liability_id"
-            value={liability.id}
-          />
-          <button className="min-h-12 w-full rounded-control border border-expense/30 bg-expense/10 font-bold text-expense transition active:scale-[0.98]">
-            Hapus Hutang
-          </button>
-        </form>
+        <ConfirmActionForm
+          submitAction={deleteLiability}
+          fields={[{ name: "liability_id", value: liability.id }]}
+          buttonLabel="Hapus Hutang"
+          title="Hapus hutang ini?"
+          description="Data ini tidak bisa dikembalikan setelah dihapus."
+          confirmLabel="Hapus Hutang"
+          buttonClassName="min-h-12 w-full rounded-control border border-expense/30 bg-expense/10 font-bold text-expense transition active:scale-[0.98]"
+        />
       )}
     </div>
   );

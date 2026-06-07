@@ -9,6 +9,7 @@ import {
   updateAsset,
   type PortfolioActionState,
 } from "@/app/(app)/portfolio/actions";
+import { ConfirmActionForm } from "@/components/ui/confirm-action-form";
 import { portfolioAssetTypeMeta } from "@/constants/portfolio";
 import type {
   PortfolioAssetItem,
@@ -185,23 +186,15 @@ export function AssetForm({
       </form>
 
       {asset && (
-        <form
-          action={deleteAsset}
-          onSubmit={(event) => {
-            if (
-              !window.confirm(
-                `Yakin hapus ${asset.name}? Data ini tidak bisa dikembalikan.`,
-              )
-            ) {
-              event.preventDefault();
-            }
-          }}
-        >
-          <input type="hidden" name="asset_id" value={asset.id} />
-          <button className="min-h-12 w-full rounded-control border border-expense/30 bg-expense/10 font-bold text-expense transition active:scale-[0.98]">
-            Hapus Aset
-          </button>
-        </form>
+        <ConfirmActionForm
+          submitAction={deleteAsset}
+          fields={[{ name: "asset_id", value: asset.id }]}
+          buttonLabel="Hapus Aset"
+          title="Hapus aset ini?"
+          description="Aset yang punya histori transaksi investasi mungkin tidak bisa dihapus agar net worth tetap konsisten."
+          confirmLabel="Hapus Aset"
+          buttonClassName="min-h-12 w-full rounded-control border border-expense/30 bg-expense/10 font-bold text-expense transition active:scale-[0.98]"
+        />
       )}
     </div>
   );

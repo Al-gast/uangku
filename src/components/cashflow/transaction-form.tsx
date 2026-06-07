@@ -128,13 +128,14 @@ export function TransactionForm({
       <section className="rounded-card border border-border bg-surface p-6 text-center shadow-card">
         <h2 className="text-lg font-bold">Belum ada akun aktif</h2>
         <p className="mt-2 text-sm leading-6 text-muted">
-          Tambahkan akun lewat onboarding sebelum mencatat transaksi.
+          Tambahkan atau aktifkan akun dari Settings sebelum mencatat
+          transaksi.
         </p>
         <Link
-          href="/onboarding"
+          href="/settings/accounts"
           className="mt-5 inline-flex min-h-11 items-center justify-center rounded-control bg-accent px-5 font-bold text-accent-foreground"
         >
-          Buka onboarding
+          Kelola akun
         </Link>
       </section>
     );

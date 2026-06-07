@@ -5,6 +5,7 @@ import {
 } from "@/app/(app)/settings/accounts/actions";
 import { spendableAccountTypeLabels } from "@/constants/accounts";
 import { MoneyText } from "@/components/ui/money-text";
+import { ConfirmActionForm } from "@/components/ui/confirm-action-form";
 import type { SettingsAccountItem } from "@/lib/accounts/types";
 
 export function AccountList({
@@ -87,18 +88,27 @@ export function AccountList({
               </button>
             </form>
             {account.transactionCount === 0 ? (
-              <form action={deleteAccount}>
-                <input type="hidden" name="account_id" value={account.id} />
-                <button type="submit" className="text-sm font-bold text-expense">
-                  Hapus
-                </button>
-              </form>
+              <ConfirmActionForm
+                submitAction={deleteAccount}
+                fields={[{ name: "account_id", value: account.id }]}
+                buttonLabel="Hapus"
+                title="Hapus akun ini?"
+                description="Akun hanya bisa dihapus jika belum punya transaksi. Kalau sudah punya histori, nonaktifkan saja agar data lama tetap aman."
+                confirmLabel="Hapus Akun"
+              />
             ) : (
               <span className="text-sm font-bold text-muted/70">
                 Punya transaksi
               </span>
             )}
           </div>
+          {account.transactionCount > 0 && (
+            <p className="mt-3 rounded-control bg-surface-muted p-3 text-xs leading-5 text-muted">
+              Akun ini sudah punya transaksi, jadi tidak bisa dihapus. Kamu
+              bisa menonaktifkannya agar tidak muncul di pilihan transaksi
+              baru.
+            </p>
+          )}
         </article>
       ))}
     </div>
