@@ -5,6 +5,7 @@ import type {
   CashflowTransactionItem,
   ManualTransactionType,
 } from "@/lib/cashflow/types";
+import { getJakartaMonthRange } from "@/lib/date";
 import type { DashboardAccount, DashboardData } from "@/lib/dashboard/types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -25,35 +26,9 @@ type RecentTransactionRow = {
   category_id: string;
 };
 
-function getJakartaMonth() {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    year: "numeric",
-    month: "2-digit",
-    timeZone: "Asia/Jakarta",
-  }).formatToParts(new Date());
-  const year = Number(parts.find((part) => part.type === "year")?.value);
-  const month = Number(parts.find((part) => part.type === "month")?.value);
-  const nextMonth = month === 12 ? 1 : month + 1;
-  const nextYear = month === 12 ? year + 1 : year;
-
-  return {
-    start: new Date(
-      `${year}-${String(month).padStart(2, "0")}-01T00:00:00+07:00`,
-    ).toISOString(),
-    end: new Date(
-      `${nextYear}-${String(nextMonth).padStart(2, "0")}-01T00:00:00+07:00`,
-    ).toISOString(),
-    label: new Intl.DateTimeFormat("id-ID", {
-      month: "long",
-      year: "numeric",
-      timeZone: "Asia/Jakarta",
-    }).format(new Date()),
-  };
-}
-
 export async function getDashboardData(): Promise<DashboardData> {
   const supabase = await createClient();
-  const month = getJakartaMonth();
+  const month = getJakartaMonthRange();
 
   const [profileResult, monthlyResult, accountResult, recentResult] =
     await Promise.all([

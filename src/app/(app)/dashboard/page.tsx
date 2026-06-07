@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { AccountSummary } from "@/components/dashboard/account-summary";
+import { BudgetWarnings } from "@/components/dashboard/budget-warnings";
 import { DashboardError } from "@/components/dashboard/dashboard-error";
 import { EmptyHero, HeroCard } from "@/components/dashboard/hero-card";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { StatCards } from "@/components/dashboard/stat-cards";
 import { PlaceholderCard } from "@/components/ui/placeholder-card";
+import { getBudgetWarnings } from "@/lib/budgets/data";
 import { getDashboardData } from "@/lib/dashboard/data";
 
 export const metadata: Metadata = {
@@ -12,7 +14,10 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardPage() {
-  const data = await getDashboardData();
+  const [data, budgetResult] = await Promise.all([
+    getDashboardData(),
+    getBudgetWarnings(),
+  ]);
   const greeting = data.profileName
     ? `Halo, ${data.profileName} 👋`
     : "Halo, selamat datang 👋";
@@ -54,6 +59,8 @@ export default async function DashboardPage() {
         accounts={data.accounts}
         error={data.accountError}
       />
+
+      <BudgetWarnings warnings={budgetResult.warnings} />
 
       {!data.dashboardError && (
         <RecentTransactions transactions={data.recentTransactions} />

@@ -59,6 +59,11 @@ export default function DashboardLoading() {
           ))}
         </div>
       </section>
+
+      <section>
+        <Skeleton className="h-6 w-40" />
+        <Skeleton className="mt-3 h-20 w-full bg-surface" />
+      </section>
     </div>
   );
 }
