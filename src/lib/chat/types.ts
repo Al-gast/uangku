@@ -37,6 +37,7 @@ export type ChatAsset = {
 export type ChatTransactionDraft = {
   type: ChatTransactionType;
   amount: number;
+  adminFeeAmount: number;
   categoryId: string;
   accountId: string;
   transferToAccountId: string | null;
@@ -51,6 +52,10 @@ export type ChatParseFailureReason =
   | "zero_amount"
   | "negative_amount"
   | "amount_too_large"
+  | "negative_admin_fee"
+  | "admin_fee_too_large"
+  | "admin_fee_exceeds_amount"
+  | "admin_fee_not_supported"
   | "unknown_category"
   | "account_not_found"
   | "asset_not_found"

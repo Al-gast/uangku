@@ -52,20 +52,30 @@ export function TransactionPreview({
 }: TransactionPreviewProps) {
   const isInvestment =
     draft.type === "investment_buy" || draft.type === "investment_sell";
+  const supportsAdminFee = draft.type === "transfer" || isInvestment;
   const selectedAsset = assets.find((asset) => asset.id === draft.assetId);
   const availableCategories = categories.filter(
     (category) =>
       category.transactionType ===
       (isInvestment ? "investment" : draft.type),
   );
-  const inlineError =
+  const assetError =
     draft.type === "investment_sell" &&
     selectedAsset &&
     draft.amount > selectedAsset.currentValue
       ? "Nilai aset tidak cukup untuk transaksi ini."
       : null;
+  const adminFeeError =
+    !Number.isFinite(draft.adminFeeAmount) || draft.adminFeeAmount < 0
+      ? "Biaya admin tidak boleh negatif."
+      : draft.type === "investment_sell" &&
+          draft.adminFeeAmount > draft.amount
+        ? "Biaya admin tidak boleh lebih besar dari nominal jual."
+        : null;
+  const inlineError = assetError ?? adminFeeError;
   const isValid =
     draft.amount > 0 &&
+    draft.adminFeeAmount >= 0 &&
     Boolean(draft.categoryId && draft.accountId) &&
     (!isInvestment || Boolean(draft.assetId)) &&
     (draft.type !== "transfer" ||
@@ -92,6 +102,8 @@ export function TransactionPreview({
       ...draft,
       type,
       categoryId: firstCategory?.id ?? "",
+      adminFeeAmount:
+        type === "transfer" || nextIsInvestment ? draft.adminFeeAmount : 0,
       transferToAccountId: firstDestination,
       assetId: nextIsInvestment ? (draft.assetId ?? assets[0]?.id ?? null) : null,
     });
@@ -147,6 +159,34 @@ export function TransactionPreview({
             />
           </div>
         </label>
+
+        {supportsAdminFee && (
+          <label className="block">
+            <span className="mb-2 block text-xs font-bold text-muted">
+              Biaya admin
+            </span>
+            <div className="flex min-h-12 items-center rounded-control border border-border bg-background px-4 focus-within:border-accent focus-within:ring-4 focus-within:ring-accent-soft">
+              <span className="mr-2 font-bold text-muted">Rp</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min="0"
+                value={draft.adminFeeAmount || ""}
+                placeholder="0"
+                onChange={(event) =>
+                  onChange({
+                    ...draft,
+                    adminFeeAmount:
+                      event.target.value === ""
+                        ? 0
+                        : Number(event.target.value),
+                  })
+                }
+                className="min-w-0 flex-1 bg-transparent text-right font-bold outline-none"
+              />
+            </div>
+          </label>
+        )}
 
         {!isInvestment && (
           <label className="block">

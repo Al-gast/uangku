@@ -23,6 +23,12 @@ const accounts: ChatAccount[] = [
     type: "bank_account",
     currentBalance: 2_000_000,
   },
+  {
+    id: "account-mandiri",
+    name: "Mandiri",
+    type: "bank_account",
+    currentBalance: 3_000_000,
+  },
 ];
 
 const categories: ChatCategory[] = [
@@ -59,6 +65,7 @@ const assets: ChatAsset[] = [
 type ExpectedDraft = {
   type: string;
   amount?: number;
+  adminFeeAmount?: number;
   categoryId?: string;
   accountId?: string;
   transferToAccountId?: string | null;
@@ -86,6 +93,14 @@ function expectDraft(text: string, expected: ExpectedDraft) {
 
   if (expected.amount !== undefined) {
     assert.equal(result.draft.amount, expected.amount, `${text} amount`);
+  }
+
+  if (expected.adminFeeAmount !== undefined) {
+    assert.equal(
+      result.draft.adminFeeAmount,
+      expected.adminFeeAmount,
+      `${text} admin fee`,
+    );
   }
 
   if (expected.categoryId !== undefined) {
@@ -129,6 +144,7 @@ function runParserRegressionTests() {
   expectDraft("makan 25k", {
     type: "expense",
     amount: 25_000,
+    adminFeeAmount: 0,
     categoryId: "category-makan",
     accountId: "account-bca",
     assetId: null,
@@ -165,12 +181,14 @@ function runParserRegressionTests() {
   expectDraft("transfer dari BCA ke GoPay 100rb", {
     type: "transfer",
     amount: 100_000,
+    adminFeeAmount: 0,
     accountId: "account-bca",
     transferToAccountId: "account-gopay",
   });
   expectDraft("transfer BCA ke GoPay 100rb", {
     type: "transfer",
     amount: 100_000,
+    adminFeeAmount: 0,
     accountId: "account-bca",
     transferToAccountId: "account-gopay",
   });
@@ -186,12 +204,67 @@ function runParserRegressionTests() {
     accountId: "account-bca",
     transferToAccountId: "account-gopay",
   });
+  expectDraft("transfer BCA ke GoPay 100rb admin 2500", {
+    type: "transfer",
+    amount: 100_000,
+    adminFeeAmount: 2_500,
+    accountId: "account-bca",
+    transferToAccountId: "account-gopay",
+  });
+  expectDraft("transfer dari Mandiri ke BCA 1jt biaya 2500", {
+    type: "transfer",
+    amount: 1_000_000,
+    adminFeeAmount: 2_500,
+    accountId: "account-mandiri",
+    transferToAccountId: "account-bca",
+  });
+  expectDraft("transfer BCA ke GoPay 100rb fee 2.500", {
+    type: "transfer",
+    amount: 100_000,
+    adminFeeAmount: 2_500,
+  });
+  expectDraft("transfer BCA ke GoPay 100rb admin 2.5k", {
+    type: "transfer",
+    amount: 100_000,
+    adminFeeAmount: 2_500,
+  });
+  expectDraft("transfer BCA ke GoPay 100rb biaya admin 2500", {
+    type: "transfer",
+    amount: 100_000,
+    adminFeeAmount: 2_500,
+  });
+  expectDraft("transfer BCA ke GoPay 100rb admin 2500rb", {
+    type: "transfer",
+    amount: 100_000,
+    adminFeeAmount: 2_500_000,
+  });
 
   expectDraft("top up RDPU 500rb dari BCA", {
     type: "investment_buy",
     amount: 500_000,
     accountId: "account-bca",
     assetId: "asset-rdpu",
+  });
+  expectDraft("top up RDPU 500rb dari BCA admin 2500", {
+    type: "investment_buy",
+    amount: 500_000,
+    adminFeeAmount: 2_500,
+    accountId: "account-bca",
+    assetId: "asset-rdpu",
+  });
+  expectDraft("beli BTC 250rb dari Jago admin 2,5k", {
+    type: "investment_buy",
+    amount: 250_000,
+    adminFeeAmount: 2_500,
+    accountId: "account-jago",
+    assetId: "asset-btc",
+  });
+  expectDraft("beli BTC 250rb dari Jago admin 5000", {
+    type: "investment_buy",
+    amount: 250_000,
+    adminFeeAmount: 5_000,
+    accountId: "account-jago",
+    assetId: "asset-btc",
   });
   expectDraft("topup RDPU 500rb dari BCA", {
     type: "investment_buy",
@@ -218,6 +291,20 @@ function runParserRegressionTests() {
     accountId: "account-bca",
     assetId: "asset-btc",
   });
+  expectDraft("jual BTC 500rb masuk BCA admin 10000", {
+    type: "investment_sell",
+    amount: 500_000,
+    adminFeeAmount: 10_000,
+    accountId: "account-bca",
+    assetId: "asset-btc",
+  });
+  expectDraft("withdraw RDPU 1jt ke Jago biaya 2500", {
+    type: "investment_sell",
+    amount: 1_000_000,
+    adminFeeAmount: 2_500,
+    accountId: "account-jago",
+    assetId: "asset-rdpu",
+  });
   expectDraft("withdraw RDPU 1jt ke Jago", {
     type: "investment_sell",
     amount: 1_000_000,
@@ -235,6 +322,14 @@ function runParserRegressionTests() {
   expectFailure("makan", "no_amount");
   expectFailure("makan 0", "zero_amount");
   expectFailure("makan -25k", "negative_amount");
+  expectFailure(
+    "transfer BCA ke GoPay 100rb admin -2500",
+    "negative_admin_fee",
+  );
+  expectFailure(
+    "jual BTC 100rb masuk BCA admin 150rb",
+    "admin_fee_exceeds_amount",
+  );
   expectFailure("transfer dari BCA ke BCA 100rb", "same_transfer_account");
   expectFailure("xyz 25k", "unknown_category");
 }

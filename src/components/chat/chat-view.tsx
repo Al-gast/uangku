@@ -25,6 +25,12 @@ const failureMessages: Record<ChatParseFailureReason, string> = {
   zero_amount: "Nominal harus lebih dari 0 ya.",
   negative_amount: "Nominal tidak boleh negatif ya.",
   amount_too_large: "Nominal terlalu besar. Coba periksa lagi ya.",
+  negative_admin_fee: "Biaya admin tidak boleh negatif ya.",
+  admin_fee_too_large: "Biaya admin terlalu besar. Coba periksa lagi ya.",
+  admin_fee_exceeds_amount:
+    "Biaya admin tidak boleh lebih besar dari nominal jual.",
+  admin_fee_not_supported:
+    "Biaya admin hanya didukung untuk transfer dan investasi.",
   unknown_category:
     "Aku belum kenal kategori ini. Coba pilih template atau isi manual ya.",
   account_not_found:

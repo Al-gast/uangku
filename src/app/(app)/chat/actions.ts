@@ -62,6 +62,29 @@ function validateDraft(draft: ChatTransactionDraft) {
   }
 
   if (
+    !Number.isFinite(draft.adminFeeAmount) ||
+    draft.adminFeeAmount < 0 ||
+    draft.adminFeeAmount > MAX_AMOUNT
+  ) {
+    return "Biaya admin tidak valid.";
+  }
+
+  if (
+    !isInvestmentType(draft.type) &&
+    draft.type !== "transfer" &&
+    draft.adminFeeAmount > 0
+  ) {
+    return "Biaya admin hanya untuk transfer atau investasi.";
+  }
+
+  if (
+    draft.type === "investment_sell" &&
+    draft.adminFeeAmount > draft.amount
+  ) {
+    return "Biaya admin tidak boleh lebih besar dari nominal jual.";
+  }
+
+  if (
     !isValidUuid(draft.accountId) ||
     !isValidUuid(draft.categoryId) ||
     !DATE_PATTERN.test(draft.transactionDate)
@@ -102,7 +125,7 @@ export async function saveChatTransaction(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("create_chat_transaction", {
+  const { error } = await supabase.rpc("create_chat_transaction_with_fee", {
     p_type: draft.type,
     p_amount: draft.amount,
     p_account_id: draft.accountId,
@@ -110,6 +133,7 @@ export async function saveChatTransaction(
     p_transaction_date: draft.transactionDate,
     p_transfer_to_account_id: draft.transferToAccountId,
     p_asset_id: draft.assetId,
+    p_admin_fee_amount: draft.adminFeeAmount,
   });
 
   if (error) {
@@ -121,6 +145,8 @@ export async function saveChatTransaction(
           : error.code === "23514" ||
               error.message.includes("Asset value cannot be negative")
             ? "Nilai aset tidak cukup untuk transaksi ini."
+          : error.message.includes("Admin fee cannot exceed")
+            ? "Biaya admin tidak boleh lebih besar dari nominal jual."
           : "Transaksi belum berhasil disimpan. Periksa preview lalu coba lagi.",
     };
   }

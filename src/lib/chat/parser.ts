@@ -46,6 +46,10 @@ type AmountMatch = {
   raw: string;
 };
 
+type AdminFeeMatch = AmountMatch & {
+  clause: string;
+};
+
 function normalize(value: string) {
   return value
     .toLocaleLowerCase("id-ID")
@@ -106,6 +110,30 @@ function extractAmount(input: string): AmountMatch | null {
   }
 
   return null;
+}
+
+function extractAdminFee(input: string): AdminFeeMatch | null {
+  const match = input.match(
+    /(?:^|\s)(?:biaya\s+admin|admin|biaya|fee)\s+(-?\d+(?:[.,]\d+)?)\s*(juta|ribu|jt|rb|k)?(?=\s|$)/iu,
+  );
+
+  if (!match) {
+    return null;
+  }
+
+  const rawNumber = match[1];
+  const suffix = match[2] ?? "";
+  const amount = parseNumericAmount(rawNumber, suffix);
+
+  if (!Number.isFinite(amount)) {
+    return null;
+  }
+
+  return {
+    amount,
+    raw: `${rawNumber}${suffix}`,
+    clause: match[0],
+  };
 }
 
 function dateForInput(input: string, now: Date) {
@@ -309,13 +337,20 @@ export function parseChatTransaction(
     return fail("unsupported", ["makan 25k", "gaji 4.7jt"]);
   }
 
-  const amountMatch = extractAmount(input);
+  const adminFeeMatch = extractAdminFee(input);
+  const inputWithoutAdminFee = adminFeeMatch
+    ? input.replace(adminFeeMatch.clause, " ").replace(/\s+/g, " ").trim()
+    : input;
+  const amountMatch = extractAmount(inputWithoutAdminFee);
 
   if (!amountMatch) {
     return fail("no_amount", ["makan 25k", "kopi 18rb"]);
   }
 
-  if (amountMatch.amount < 0 || /(^|\s)-\d/.test(input)) {
+  if (
+    amountMatch.amount < 0 ||
+    /(^|\s)-\d/.test(inputWithoutAdminFee)
+  ) {
     return fail("negative_amount", ["makan 25k"]);
   }
 
@@ -327,10 +362,19 @@ export function parseChatTransaction(
     return fail("amount_too_large", ["Periksa kembali nominal transaksi."]);
   }
 
-  if (!hasContext(input, amountMatch.raw, accounts)) {
+  if (adminFeeMatch && adminFeeMatch.amount < 0) {
+    return fail("negative_admin_fee", ["transfer BCA ke GoPay 100rb admin 2500"]);
+  }
+
+  if (adminFeeMatch && adminFeeMatch.amount > MAX_AMOUNT) {
+    return fail("admin_fee_too_large", ["Periksa kembali biaya admin."]);
+  }
+
+  if (!hasContext(inputWithoutAdminFee, amountMatch.raw, accounts)) {
     return fail("amount_only", ["kopi 18k", "gaji 4.7jt"]);
   }
 
+  const adminFeeAmount = adminFeeMatch?.amount ?? 0;
   const transactionDate = dateForInput(input, now);
   const fallbackAccount = defaultAccount(accounts);
   const matchedAsset = matchAsset(input, assets);
@@ -374,11 +418,18 @@ export function parseChatTransaction(
       ]);
     }
 
+    if (isSellIntent && adminFeeAmount > amountMatch.amount) {
+      return fail("admin_fee_exceeds_amount", [
+        "Biaya admin tidak boleh lebih besar dari nominal jual.",
+      ]);
+    }
+
     return {
       success: true,
       draft: {
         type: isSellIntent ? "investment_sell" : "investment_buy",
         amount: amountMatch.amount,
+        adminFeeAmount,
         categoryId: investmentCategory.id,
         accountId: account.id,
         transferToAccountId: null,
@@ -419,6 +470,7 @@ export function parseChatTransaction(
       draft: {
         type: "transfer",
         amount: amountMatch.amount,
+        adminFeeAmount,
         categoryId: transferCategory.id,
         accountId: source.id,
         transferToAccountId: destination.id,
@@ -457,6 +509,12 @@ export function parseChatTransaction(
     ]);
   }
 
+  if (adminFeeAmount > 0) {
+    return fail("admin_fee_not_supported", [
+      "Biaya admin hanya didukung untuk transfer dan investasi.",
+    ]);
+  }
+
   const mentionedAccount = sortedAccountMatches(input, accounts)[0]?.account;
   const account = mentionedAccount ?? fallbackAccount;
 
@@ -471,6 +529,7 @@ export function parseChatTransaction(
     draft: {
       type,
       amount: amountMatch.amount,
+      adminFeeAmount: 0,
       categoryId: typedCategory.id,
       accountId: account.id,
       transferToAccountId: null,
