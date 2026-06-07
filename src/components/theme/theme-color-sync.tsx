@@ -1,6 +1,5 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import {
   getThemeColor,
@@ -57,26 +56,22 @@ export function ThemeColorSync({
   themeMode: ThemeMode;
   accentTheme: AccentTheme;
 }) {
-  const pathname = usePathname();
-
   useEffect(() => {
     const systemTheme = window.matchMedia(darkModeQuery);
     const syncThemeColor = () =>
       updateDocumentThemeColor(themeMode, accentTheme);
-    const animationFrame = window.requestAnimationFrame(syncThemeColor);
 
     syncThemeColor();
 
     if (themeMode !== "system") {
-      return () => window.cancelAnimationFrame(animationFrame);
+      return;
     }
 
     systemTheme.addEventListener("change", syncThemeColor);
     return () => {
-      window.cancelAnimationFrame(animationFrame);
       systemTheme.removeEventListener("change", syncThemeColor);
     };
-  }, [accentTheme, pathname, themeMode]);
+  }, [accentTheme, themeMode]);
 
   return null;
 }

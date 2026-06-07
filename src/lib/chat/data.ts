@@ -5,9 +5,21 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function getChatOptions() {
   const supabase = await createClient();
-  const { error: categorySetupError } = await supabase.rpc(
-    "ensure_chat_categories",
-  );
+  const [categorySetupResult, accountResult, assetResult] = await Promise.all([
+    supabase.rpc("ensure_chat_categories"),
+    supabase
+      .from("accounts")
+      .select("id,name,type,current_balance")
+      .eq("is_active", true)
+      .in("type", ["cash", "bank_account", "e_wallet"])
+      .order("created_at"),
+    supabase
+      .from("assets")
+      .select("id,name,type,current_value")
+      .in("type", ["rdpu", "rdpt", "gold", "crypto", "stock", "other_asset"])
+      .order("created_at"),
+  ]);
+  const categorySetupError = categorySetupResult.error;
 
   if (categorySetupError) {
     return {
@@ -22,29 +34,14 @@ export async function getChatOptions() {
     };
   }
 
-  const [
-    { data: accountRows, error: accountError },
-    { data: assetRows, error: assetError },
-    { data: categoryRows, error: categoryError },
-  ] = await Promise.all([
-      supabase
-        .from("accounts")
-        .select("id,name,type,current_balance")
-        .eq("is_active", true)
-        .in("type", ["cash", "bank_account", "e_wallet"])
-        .order("created_at"),
-      supabase
-        .from("assets")
-        .select("id,name,type,current_value")
-        .in("type", ["rdpu", "rdpt", "gold", "crypto", "stock", "other_asset"])
-        .order("created_at"),
-      supabase
-        .from("categories")
-        .select("id,name,transaction_type")
-        .in("transaction_type", ["income", "expense", "transfer", "investment"])
-        .eq("is_active", true)
-        .order("name"),
-    ]);
+  const { data: categoryRows, error: categoryError } = await supabase
+    .from("categories")
+    .select("id,name,transaction_type")
+    .in("transaction_type", ["income", "expense", "transfer", "investment"])
+    .eq("is_active", true)
+    .order("name");
+  const { data: accountRows, error: accountError } = accountResult;
+  const { data: assetRows, error: assetError } = assetResult;
 
   if (accountError || assetError || categoryError) {
     return {

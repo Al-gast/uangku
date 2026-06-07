@@ -21,15 +21,9 @@ export default async function MainAppLayout({
     redirect("/login");
   }
 
-  const [{ data: settings, error }, appSettings] = await Promise.all([
-    supabase
-      .from("user_settings")
-      .select("onboarding_completed")
-      .maybeSingle(),
-    getAppUserSettings(),
-  ]);
+  const appSettings = await getAppUserSettings();
 
-  if (error || !settings?.onboarding_completed) {
+  if (!appSettings.onboardingCompleted) {
     redirect("/onboarding");
   }
 

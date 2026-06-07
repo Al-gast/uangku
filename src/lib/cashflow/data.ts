@@ -37,8 +37,24 @@ export async function ensureManualCashflowCategories() {
 }
 
 export async function getCashflowFormOptions() {
-  const { supabase, error: categorySetupError } =
-    await ensureManualCashflowCategories();
+  const supabase = await createClient();
+  const [setupResult, adminFeeResult, accountResult, assetResult] =
+    await Promise.all([
+      supabase.rpc("ensure_manual_cashflow_categories"),
+      supabase.rpc("ensure_admin_fee_category"),
+      supabase
+        .from("accounts")
+        .select("id,name,current_balance")
+        .eq("is_active", true)
+        .in("type", ["cash", "bank_account", "e_wallet"])
+        .order("created_at"),
+      supabase
+        .from("assets")
+        .select("id,name,current_value")
+        .in("type", ["rdpu", "rdpt", "gold", "crypto", "stock", "other_asset"])
+        .order("created_at"),
+    ]);
+  const categorySetupError = setupResult.error ?? adminFeeResult.error;
 
   if (categorySetupError) {
     return {
@@ -53,29 +69,14 @@ export async function getCashflowFormOptions() {
     };
   }
 
-  const [
-    { data: accountRows },
-    { data: assetRows },
-    { data: categoryRows },
-  ] = await Promise.all([
-    supabase
-      .from("accounts")
-      .select("id,name,current_balance")
-      .eq("is_active", true)
-      .in("type", ["cash", "bank_account", "e_wallet"])
-      .order("created_at"),
-    supabase
-      .from("assets")
-      .select("id,name,current_value")
-      .in("type", ["rdpu", "rdpt", "gold", "crypto", "stock", "other_asset"])
-      .order("created_at"),
-    supabase
-      .from("categories")
-      .select("id,name,transaction_type")
-      .in("transaction_type", ["income", "expense", "transfer", "investment"])
-      .eq("is_active", true)
-      .order("name"),
-  ]);
+  const { data: categoryRows } = await supabase
+    .from("categories")
+    .select("id,name,transaction_type")
+    .in("transaction_type", ["income", "expense", "transfer", "investment"])
+    .eq("is_active", true)
+    .order("name");
+  const accountRows = accountResult.data;
+  const assetRows = assetResult.data;
 
   return {
     accounts: (accountRows ?? []).map((account) => ({
