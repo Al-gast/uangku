@@ -1,6 +1,8 @@
 "use client";
 
 import { ThemedSelect } from "@/components/ui/themed-select";
+import { ThemedDateInput } from "@/components/ui/themed-date-input";
+import { ThemedNumberInput } from "@/components/ui/themed-number-input";
 import type {
   ChatAccount,
   ChatAsset,
@@ -142,51 +144,35 @@ export function TransactionPreview({
           </div>
         </fieldset>
 
-        <label className="block">
-          <span className="mb-2 block text-xs font-bold text-muted">
-            Nominal
-          </span>
-          <div className="flex min-h-12 items-center rounded-control border border-border bg-background px-4 focus-within:border-accent focus-within:ring-4 focus-within:ring-accent-soft">
-            <span className="mr-2 font-bold text-muted">Rp</span>
-            <input
-              type="number"
-              inputMode="numeric"
-              min="1"
-              value={draft.amount}
-              onChange={(event) =>
-                onChange({ ...draft, amount: Number(event.target.value) })
-              }
-              className="min-w-0 flex-1 bg-transparent text-right text-lg font-bold outline-none"
-            />
-          </div>
-        </label>
+        <ThemedNumberInput
+          label={<span className="text-xs text-muted">Nominal</span>}
+          prefix="Rp"
+          inputMode="numeric"
+          min="1"
+          value={draft.amount}
+          surface="background"
+          textSize="lg"
+          onChange={(value) =>
+            onChange({ ...draft, amount: Number(value) })
+          }
+        />
 
         {supportsAdminFee && (
-          <label className="block">
-            <span className="mb-2 block text-xs font-bold text-muted">
-              Biaya admin
-            </span>
-            <div className="flex min-h-12 items-center rounded-control border border-border bg-background px-4 focus-within:border-accent focus-within:ring-4 focus-within:ring-accent-soft">
-              <span className="mr-2 font-bold text-muted">Rp</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min="0"
-                value={draft.adminFeeAmount || ""}
-                placeholder="0"
-                onChange={(event) =>
-                  onChange({
-                    ...draft,
-                    adminFeeAmount:
-                      event.target.value === ""
-                        ? 0
-                        : Number(event.target.value),
-                  })
-                }
-                className="min-w-0 flex-1 bg-transparent text-right font-bold outline-none"
-              />
-            </div>
-          </label>
+          <ThemedNumberInput
+            label={<span className="text-xs text-muted">Biaya admin</span>}
+            prefix="Rp"
+            inputMode="numeric"
+            min="0"
+            value={draft.adminFeeAmount || ""}
+            placeholder="0"
+            surface="background"
+            onChange={(value) =>
+              onChange({
+                ...draft,
+                adminFeeAmount: value === "" ? 0 : Number(value),
+              })
+            }
+          />
         )}
 
         {!isInvestment && (
@@ -268,19 +254,14 @@ export function TransactionPreview({
           />
         )}
 
-        <label className="block">
-          <span className="mb-2 block text-xs font-bold text-muted">
-            Tanggal
-          </span>
-          <input
-            type="date"
-            value={draft.transactionDate}
-            onChange={(event) =>
-              onChange({ ...draft, transactionDate: event.target.value })
-            }
-            className="min-h-12 w-full rounded-control border border-border bg-background px-4 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
-          />
-        </label>
+        <ThemedDateInput
+          label={<span className="text-xs text-muted">Tanggal</span>}
+          value={draft.transactionDate}
+          surface="background"
+          onChange={(transactionDate) =>
+            onChange({ ...draft, transactionDate })
+          }
+        />
       </div>
 
       {(error || inlineError) && (

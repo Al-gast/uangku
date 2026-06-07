@@ -9,6 +9,7 @@ import {
   type CashflowActionState,
 } from "@/app/(app)/cashflow/actions";
 import { usePrivacy } from "@/components/providers/privacy-provider";
+import { ThemedDateInput } from "@/components/ui/themed-date-input";
 import { ThemedSelect } from "@/components/ui/themed-select";
 import { formatPrivateAmount } from "@/lib/format";
 import type {
@@ -319,20 +320,14 @@ export function TransactionForm({
         />
       )}
 
-      <label className="block">
-        <span className="mb-2 block text-sm font-bold">Tanggal</span>
-        <input
-          name="transaction_date"
-          type="date"
-          required
-          defaultValue={
-            transaction
-              ? transaction.transactionDate.slice(0, 10)
-              : defaultDate
-          }
-          className="min-h-12 w-full rounded-control border border-border bg-surface px-4 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
-        />
-      </label>
+      <ThemedDateInput
+        label="Tanggal"
+        name="transaction_date"
+        required
+        defaultValue={
+          transaction ? transaction.transactionDate.slice(0, 10) : defaultDate
+        }
+      />
 
       <details className="rounded-card border border-border bg-surface p-4">
         <summary className="cursor-pointer font-bold text-accent-strong">
