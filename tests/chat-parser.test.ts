@@ -1,6 +1,11 @@
 import { strict as assert } from "node:assert";
 import { parseChatTransaction } from "../src/lib/chat/parser";
-import type { ChatAccount, ChatAsset, ChatCategory } from "../src/lib/chat/types";
+import type {
+  ChatAccount,
+  ChatAsset,
+  ChatCategory,
+  ChatLiability,
+} from "../src/lib/chat/types";
 
 const now = new Date("2026-06-07T05:00:00.000Z");
 
@@ -39,6 +44,7 @@ const categories: ChatCategory[] = [
   { id: "category-freelance", name: "Freelance", transactionType: "income" },
   { id: "category-transfer", name: "Transfer", transactionType: "transfer" },
   { id: "category-investasi", name: "Investasi", transactionType: "investment" },
+  { id: "category-hutang", name: "Hutang", transactionType: "debt" },
 ];
 
 const assets: ChatAsset[] = [
@@ -62,6 +68,19 @@ const assets: ChatAsset[] = [
   },
 ];
 
+const liabilities: ChatLiability[] = [
+  {
+    id: "liability-andi",
+    name: "Andi",
+    remainingAmount: 1_000_000,
+  },
+  {
+    id: "liability-laptop",
+    name: "cicilan laptop",
+    remainingAmount: 5_000_000,
+  },
+];
+
 type ExpectedDraft = {
   type: string;
   amount?: number;
@@ -70,10 +89,18 @@ type ExpectedDraft = {
   accountId?: string;
   transferToAccountId?: string | null;
   assetId?: string | null;
+  liabilityId?: string | null;
 };
 
 function parse(text: string) {
-  return parseChatTransaction(text, categories, accounts, assets, now);
+  return parseChatTransaction(
+    text,
+    categories,
+    accounts,
+    assets,
+    liabilities,
+    now,
+  );
 }
 
 function expectDraft(text: string, expected: ExpectedDraft) {
@@ -121,6 +148,14 @@ function expectDraft(text: string, expected: ExpectedDraft) {
 
   if (expected.assetId !== undefined) {
     assert.equal(result.draft.assetId, expected.assetId, `${text} asset`);
+  }
+
+  if (expected.liabilityId !== undefined) {
+    assert.equal(
+      result.draft.liabilityId,
+      expected.liabilityId,
+      `${text} liability`,
+    );
   }
 }
 
@@ -318,6 +353,48 @@ function runParserRegressionTests() {
     assetId: "asset-rdpu",
   });
 
+  expectDraft("bayar hutang Andi 300rb dari BCA", {
+    type: "debt_payment",
+    amount: 300_000,
+    adminFeeAmount: 0,
+    categoryId: "category-hutang",
+    accountId: "account-bca",
+    assetId: null,
+    liabilityId: "liability-andi",
+  });
+  expectDraft("bayar utang Andi 300rb dari BCA", {
+    type: "debt_payment",
+    amount: 300_000,
+    accountId: "account-bca",
+    liabilityId: "liability-andi",
+  });
+  expectDraft("bayar cicilan laptop 1jt dari Jago", {
+    type: "debt_payment",
+    amount: 1_000_000,
+    accountId: "account-jago",
+    liabilityId: "liability-laptop",
+  });
+  expectDraft("bayar hutang Andi 300rb dari BCA bunga 20rb", {
+    type: "debt_payment",
+    amount: 300_000,
+    adminFeeAmount: 20_000,
+    accountId: "account-bca",
+    liabilityId: "liability-andi",
+  });
+  expectDraft("bayar cicilan laptop 1jt dari Jago biaya 10000", {
+    type: "debt_payment",
+    amount: 1_000_000,
+    adminFeeAmount: 10_000,
+    accountId: "account-jago",
+    liabilityId: "liability-laptop",
+  });
+  expectDraft("lunasi hutang Andi 500rb dari BCA", {
+    type: "debt_payment",
+    amount: 500_000,
+    accountId: "account-bca",
+    liabilityId: "liability-andi",
+  });
+
   expectFailure("25k", "amount_only");
   expectFailure("makan", "no_amount");
   expectFailure("makan 0", "zero_amount");
@@ -331,6 +408,10 @@ function runParserRegressionTests() {
     "admin_fee_exceeds_amount",
   );
   expectFailure("transfer dari BCA ke BCA 100rb", "same_transfer_account");
+  expectFailure(
+    "bayar hutang Budi 300rb dari BCA",
+    "liability_not_found",
+  );
   expectFailure("xyz 25k", "unknown_category");
 }
 

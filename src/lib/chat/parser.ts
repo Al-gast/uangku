@@ -2,6 +2,7 @@ import type {
   ChatAccount,
   ChatAsset,
   ChatCategory,
+  ChatLiability,
   ChatParseFailureReason,
   ChatParseResult,
   ChatTransactionType,
@@ -12,6 +13,13 @@ const LIQUID_ACCOUNT_TYPES = new Set(["cash", "bank_account", "e_wallet"]);
 const INCOME_KEYWORDS = ["gaji", "bonus", "freelance"];
 const INVESTMENT_BUY_KEYWORDS = ["top up", "topup", "beli"];
 const INVESTMENT_SELL_KEYWORDS = ["jual", "withdraw", "tarik"];
+const DEBT_PAYMENT_KEYWORDS = [
+  "bayar hutang",
+  "bayar utang",
+  "bayar cicilan",
+  "lunasi hutang",
+  "lunasi utang",
+];
 const INVESTMENT_SIGNAL_WORDS = [
   "investasi",
   "reksadana",
@@ -114,7 +122,7 @@ function extractAmount(input: string): AmountMatch | null {
 
 function extractAdminFee(input: string): AdminFeeMatch | null {
   const match = input.match(
-    /(?:^|\s)(?:biaya\s+admin|admin|biaya|fee)\s+(-?\d+(?:[.,]\d+)?)\s*(juta|ribu|jt|rb|k)?(?=\s|$)/iu,
+    /(?:^|\s)(?:biaya\s+admin|admin|biaya|bunga|fee)\s+(-?\d+(?:[.,]\d+)?)\s*(juta|ribu|jt|rb|k)?(?=\s|$)/iu,
   );
 
   if (!match) {
@@ -202,6 +210,21 @@ function matchAsset(input: string, assets: ChatAsset[]) {
         const positionDifference = input.indexOf(a.alias) - input.indexOf(b.alias);
         return positionDifference || b.alias.length - a.alias.length;
       })[0]?.asset ?? null
+  );
+}
+
+function matchLiability(input: string, liabilities: ChatLiability[]) {
+  return (
+    liabilities
+      .map((liability) => ({
+        liability,
+        name: normalize(liability.name),
+      }))
+      .filter(({ name }) => name && input.includes(name))
+      .sort((a, b) => {
+        const positionDifference = input.indexOf(a.name) - input.indexOf(b.name);
+        return positionDifference || b.name.length - a.name.length;
+      })[0]?.liability ?? null
   );
 }
 
@@ -329,6 +352,7 @@ export function parseChatTransaction(
   categories: ChatCategory[],
   accounts: ChatAccount[],
   assets: ChatAsset[] = [],
+  liabilities: ChatLiability[] = [],
   now = new Date(),
 ): ChatParseResult {
   const input = normalize(rawText);
@@ -378,12 +402,57 @@ export function parseChatTransaction(
   const transactionDate = dateForInput(input, now);
   const fallbackAccount = defaultAccount(accounts);
   const matchedAsset = matchAsset(input, assets);
+  const matchedLiability = matchLiability(input, liabilities);
+  const isDebtPaymentInput = hasKeyword(input, DEBT_PAYMENT_KEYWORDS);
   const isSellIntent = hasKeyword(input, INVESTMENT_SELL_KEYWORDS);
   const hasBuyKeyword = hasKeyword(input, INVESTMENT_BUY_KEYWORDS);
   const isBuyIntent =
     hasKeyword(input, ["top up", "topup"]) ||
     (hasBuyKeyword && (matchedAsset || hasInvestmentSignal(input)));
   const isInvestmentInput = isBuyIntent || isSellIntent;
+
+  if (isDebtPaymentInput) {
+    const debtCategory =
+      categories.find((category) => category.transactionType === "debt") ??
+      null;
+    const account =
+      findAccountAfterCue(input, "dari ", accounts) ??
+      sortedAccountMatches(input, accounts)[0]?.account ??
+      fallbackAccount;
+
+    if (!matchedLiability) {
+      return fail("liability_not_found", [
+        "bayar hutang Andi 300rb dari BCA",
+        "bayar cicilan laptop 1jt dari Jago",
+      ]);
+    }
+
+    if (!debtCategory) {
+      return fail("unknown_category", ["Gunakan kategori Hutang."]);
+    }
+
+    if (!account) {
+      return fail("account_not_found", [
+        "Tambahkan akun tunai, bank, atau e-wallet terlebih dahulu.",
+      ]);
+    }
+
+    return {
+      success: true,
+      draft: {
+        type: "debt_payment",
+        amount: amountMatch.amount,
+        adminFeeAmount,
+        categoryId: debtCategory.id,
+        accountId: account.id,
+        transferToAccountId: null,
+        assetId: null,
+        liabilityId: matchedLiability.id,
+        transactionDate,
+        confidence: 0.91,
+      },
+    };
+  }
 
   if (isInvestmentInput) {
     const investmentCategory =
@@ -434,6 +503,7 @@ export function parseChatTransaction(
         accountId: account.id,
         transferToAccountId: null,
         assetId: matchedAsset.id,
+        liabilityId: null,
         transactionDate,
         confidence: 0.93,
       },
@@ -475,6 +545,7 @@ export function parseChatTransaction(
         accountId: source.id,
         transferToAccountId: destination.id,
         assetId: null,
+        liabilityId: null,
         transactionDate,
         confidence: 0.98,
       },
@@ -511,7 +582,7 @@ export function parseChatTransaction(
 
   if (adminFeeAmount > 0) {
     return fail("admin_fee_not_supported", [
-      "Biaya admin hanya didukung untuk transfer dan investasi.",
+      "Biaya admin hanya didukung untuk transfer, investasi, dan bayar hutang.",
     ]);
   }
 
@@ -534,6 +605,7 @@ export function parseChatTransaction(
       accountId: account.id,
       transferToAccountId: null,
       assetId: null,
+      liabilityId: null,
       transactionDate,
       confidence: mentionedAccount ? 0.96 : 0.88,
     },

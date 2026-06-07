@@ -7,12 +7,14 @@ export const metadata: Metadata = {
 };
 
 export default async function ChatPage() {
-  const { accounts, assets, categories, setupError } = await getChatOptions();
+  const { accounts, assets, liabilities, categories, setupError } =
+    await getChatOptions();
 
   return (
     <ChatView
       accounts={accounts}
       assets={assets}
+      liabilities={liabilities}
       categories={categories}
       setupError={setupError}
     />

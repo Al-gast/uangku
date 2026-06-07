@@ -12,6 +12,7 @@ import type {
   ChatAccount,
   ChatAsset,
   ChatCategory,
+  ChatLiability,
   ChatMessage,
   ChatParseFailureReason,
   ChatTransactionDraft,
@@ -30,13 +31,15 @@ const failureMessages: Record<ChatParseFailureReason, string> = {
   admin_fee_exceeds_amount:
     "Biaya admin tidak boleh lebih besar dari nominal jual.",
   admin_fee_not_supported:
-    "Biaya admin hanya didukung untuk transfer dan investasi.",
+    "Biaya admin hanya didukung untuk transfer, investasi, dan bayar hutang.",
   unknown_category:
     "Aku belum kenal kategori ini. Coba pilih template atau isi manual ya.",
   account_not_found:
     "Aku belum menemukan akun aktif. Tambahkan akun dulu atau isi manual ya.",
   asset_not_found:
     "Aku belum menemukan aset investasi itu. Tambahkan aset di Portfolio dulu ya.",
+  liability_not_found:
+    "Aku belum menemukan hutang itu. Tambahkan liability di Portfolio dulu ya.",
   transfer_accounts_missing:
     'Sebutkan akun asal dan tujuan, contoh: "transfer dari BCA ke GoPay 100rb"',
   same_transfer_account: "Akun asal dan tujuan transfer harus berbeda ya.",
@@ -59,11 +62,13 @@ function message(
 export function ChatView({
   accounts,
   assets,
+  liabilities,
   categories,
   setupError,
 }: {
   accounts: ChatAccount[];
   assets: ChatAsset[];
+  liabilities: ChatLiability[];
   categories: ChatCategory[];
   setupError: string | null;
 }) {
@@ -101,6 +106,7 @@ export function ChatView({
         categories,
         accounts,
         assets,
+        liabilities,
       );
       setIsParsing(false);
 
@@ -203,6 +209,7 @@ export function ChatView({
               draft={preview}
               accounts={accounts}
               assets={assets}
+              liabilities={liabilities}
               categories={categories}
               isSaving={isSaving}
               error={previewError}

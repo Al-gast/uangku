@@ -6,13 +6,15 @@ export type ChatTransactionType =
   | "expense"
   | "transfer"
   | "investment_buy"
-  | "investment_sell";
+  | "investment_sell"
+  | "debt_payment";
 
 export type ChatCategoryType =
   | "income"
   | "expense"
   | "transfer"
-  | "investment";
+  | "investment"
+  | "debt";
 
 export type ChatAccount = {
   id: string;
@@ -34,6 +36,12 @@ export type ChatAsset = {
   currentValue: number;
 };
 
+export type ChatLiability = {
+  id: string;
+  name: string;
+  remainingAmount: number;
+};
+
 export type ChatTransactionDraft = {
   type: ChatTransactionType;
   amount: number;
@@ -42,6 +50,7 @@ export type ChatTransactionDraft = {
   accountId: string;
   transferToAccountId: string | null;
   assetId: string | null;
+  liabilityId: string | null;
   transactionDate: string;
   confidence: number;
 };
@@ -59,6 +68,7 @@ export type ChatParseFailureReason =
   | "unknown_category"
   | "account_not_found"
   | "asset_not_found"
+  | "liability_not_found"
   | "transfer_accounts_missing"
   | "same_transfer_account"
   | "unsupported";

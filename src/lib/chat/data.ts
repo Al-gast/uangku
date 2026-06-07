@@ -1,12 +1,24 @@
 import "server-only";
 
-import type { ChatAccount, ChatAsset, ChatCategory } from "@/lib/chat/types";
+import type {
+  ChatAccount,
+  ChatAsset,
+  ChatCategory,
+  ChatLiability,
+} from "@/lib/chat/types";
 import { createClient } from "@/lib/supabase/server";
 
 export async function getChatOptions() {
   const supabase = await createClient();
-  const [categorySetupResult, accountResult, assetResult] = await Promise.all([
+  const [
+    categorySetupResult,
+    manualCategorySetupResult,
+    accountResult,
+    assetResult,
+    liabilityResult,
+  ] = await Promise.all([
     supabase.rpc("ensure_chat_categories"),
+    supabase.rpc("ensure_manual_cashflow_categories"),
     supabase
       .from("accounts")
       .select("id,name,type,current_balance")
@@ -18,17 +30,25 @@ export async function getChatOptions() {
       .select("id,name,type,current_value")
       .in("type", ["rdpu", "rdpt", "gold", "crypto", "stock", "other_asset"])
       .order("created_at"),
+    supabase
+      .from("liabilities")
+      .select("id,name,remaining_amount")
+      .gt("remaining_amount", 0)
+      .order("due_date", { ascending: true, nullsFirst: false })
+      .order("created_at"),
   ]);
   const categorySetupError = categorySetupResult.error;
+  const setupError = categorySetupError ?? manualCategorySetupResult.error;
 
-  if (categorySetupError) {
+  if (setupError) {
     return {
       accounts: [] as ChatAccount[],
       assets: [] as ChatAsset[],
+      liabilities: [] as ChatLiability[],
       categories: [] as ChatCategory[],
       setupError:
-        categorySetupError.code === "PGRST202" ||
-        categorySetupError.code === "42883"
+        setupError.code === "PGRST202" ||
+        setupError.code === "42883"
           ? "Migration Chat Input belum diterapkan di Supabase."
           : "Kategori chat belum bisa disiapkan.",
     };
@@ -37,16 +57,24 @@ export async function getChatOptions() {
   const { data: categoryRows, error: categoryError } = await supabase
     .from("categories")
     .select("id,name,transaction_type")
-    .in("transaction_type", ["income", "expense", "transfer", "investment"])
+    .in("transaction_type", [
+      "income",
+      "expense",
+      "transfer",
+      "investment",
+      "debt",
+    ])
     .eq("is_active", true)
     .order("name");
   const { data: accountRows, error: accountError } = accountResult;
   const { data: assetRows, error: assetError } = assetResult;
+  const { data: liabilityRows, error: liabilityError } = liabilityResult;
 
-  if (accountError || assetError || categoryError) {
+  if (accountError || assetError || liabilityError || categoryError) {
     return {
       accounts: [] as ChatAccount[],
       assets: [] as ChatAsset[],
+      liabilities: [] as ChatLiability[],
       categories: [] as ChatCategory[],
       setupError: "Data akun dan kategori belum bisa dimuat.",
     };
@@ -64,6 +92,11 @@ export async function getChatOptions() {
       name: asset.name,
       type: asset.type as ChatAsset["type"],
       currentValue: Number(asset.current_value),
+    })),
+    liabilities: (liabilityRows ?? []).map((liability) => ({
+      id: liability.id,
+      name: liability.name,
+      remainingAmount: Number(liability.remaining_amount),
     })),
     categories: (categoryRows ?? []).map((category) => ({
       id: category.id,

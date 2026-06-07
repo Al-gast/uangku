@@ -7,6 +7,7 @@ import type {
   ChatAccount,
   ChatAsset,
   ChatCategory,
+  ChatLiability,
   ChatTransactionDraft,
   ChatTransactionType,
 } from "@/lib/chat/types";
@@ -20,6 +21,7 @@ const typeOptions: Array<{
   { value: "transfer", label: "Transfer" },
   { value: "investment_buy", label: "Top up investasi" },
   { value: "investment_sell", label: "Tarik investasi" },
+  { value: "debt_payment", label: "Bayar hutang" },
 ];
 
 const typeStyles = {
@@ -28,12 +30,14 @@ const typeStyles = {
   transfer: "bg-transfer/10 text-transfer",
   investment_buy: "bg-accent-soft text-accent-strong",
   investment_sell: "bg-accent-soft text-accent-strong",
+  debt_payment: "bg-debt/10 text-debt",
 } as const;
 
 type TransactionPreviewProps = {
   draft: ChatTransactionDraft;
   accounts: ChatAccount[];
   assets: ChatAsset[];
+  liabilities: ChatLiability[];
   categories: ChatCategory[];
   isSaving: boolean;
   error: string | null;
@@ -46,6 +50,7 @@ export function TransactionPreview({
   draft,
   accounts,
   assets,
+  liabilities,
   categories,
   isSaving,
   error,
@@ -55,12 +60,17 @@ export function TransactionPreview({
 }: TransactionPreviewProps) {
   const isInvestment =
     draft.type === "investment_buy" || draft.type === "investment_sell";
-  const supportsAdminFee = draft.type === "transfer" || isInvestment;
+  const isDebtPayment = draft.type === "debt_payment";
+  const supportsAdminFee =
+    draft.type === "transfer" || isInvestment || isDebtPayment;
   const selectedAsset = assets.find((asset) => asset.id === draft.assetId);
+  const selectedLiability = liabilities.find(
+    (liability) => liability.id === draft.liabilityId,
+  );
   const availableCategories = categories.filter(
     (category) =>
       category.transactionType ===
-      (isInvestment ? "investment" : draft.type),
+      (isInvestment ? "investment" : isDebtPayment ? "debt" : draft.type),
   );
   const assetError =
     draft.type === "investment_sell" &&
@@ -75,12 +85,19 @@ export function TransactionPreview({
           draft.adminFeeAmount > draft.amount
         ? "Biaya admin tidak boleh lebih besar dari nominal jual."
         : null;
-  const inlineError = assetError ?? adminFeeError;
+  const liabilityError =
+    isDebtPayment &&
+    selectedLiability &&
+    draft.amount > selectedLiability.remainingAmount
+      ? "Nominal pokok tidak boleh lebih besar dari sisa hutang."
+      : null;
+  const inlineError = assetError ?? liabilityError ?? adminFeeError;
   const isValid =
     draft.amount > 0 &&
     draft.adminFeeAmount >= 0 &&
     Boolean(draft.categoryId && draft.accountId) &&
     (!isInvestment || Boolean(draft.assetId)) &&
+    (!isDebtPayment || Boolean(draft.liabilityId)) &&
     (draft.type !== "transfer" ||
       Boolean(
         draft.transferToAccountId &&
@@ -91,10 +108,11 @@ export function TransactionPreview({
   function changeType(type: ChatTransactionType) {
     const nextIsInvestment =
       type === "investment_buy" || type === "investment_sell";
+    const nextIsDebtPayment = type === "debt_payment";
     const firstCategory = categories.find(
       (category) =>
         category.transactionType ===
-        (nextIsInvestment ? "investment" : type),
+        (nextIsInvestment ? "investment" : nextIsDebtPayment ? "debt" : type),
     );
     const firstDestination =
       type === "transfer"
@@ -106,9 +124,14 @@ export function TransactionPreview({
       type,
       categoryId: firstCategory?.id ?? "",
       adminFeeAmount:
-        type === "transfer" || nextIsInvestment ? draft.adminFeeAmount : 0,
+        type === "transfer" || nextIsInvestment || nextIsDebtPayment
+          ? draft.adminFeeAmount
+          : 0,
       transferToAccountId: firstDestination,
       assetId: nextIsInvestment ? (draft.assetId ?? assets[0]?.id ?? null) : null,
+      liabilityId: nextIsDebtPayment
+        ? (draft.liabilityId ?? liabilities[0]?.id ?? null)
+        : null,
     });
   }
 
@@ -145,7 +168,11 @@ export function TransactionPreview({
         </fieldset>
 
         <ThemedNumberInput
-          label={<span className="text-xs text-muted">Nominal</span>}
+          label={
+            <span className="text-xs text-muted">
+              {isDebtPayment ? "Nominal pokok" : "Nominal"}
+            </span>
+          }
           prefix="Rp"
           inputMode="numeric"
           min="1"
@@ -159,7 +186,11 @@ export function TransactionPreview({
 
         {supportsAdminFee && (
           <ThemedNumberInput
-            label={<span className="text-xs text-muted">Biaya admin</span>}
+            label={
+              <span className="text-xs text-muted">
+                {isDebtPayment ? "Biaya/bunga" : "Biaya admin"}
+              </span>
+            }
             prefix="Rp"
             inputMode="numeric"
             min="0"
@@ -175,7 +206,7 @@ export function TransactionPreview({
           />
         )}
 
-        {!isInvestment && (
+        {!isInvestment && !isDebtPayment && (
           <ThemedSelect
             label="Kategori"
             value={draft.categoryId}
@@ -189,7 +220,9 @@ export function TransactionPreview({
 
         <ThemedSelect
           label={
-            draft.type === "transfer" || draft.type === "investment_buy"
+            draft.type === "transfer" ||
+            draft.type === "investment_buy" ||
+            isDebtPayment
               ? "Dari akun"
               : draft.type === "investment_sell"
                 ? "Ke akun"
@@ -230,6 +263,27 @@ export function TransactionPreview({
             options={assets.map((asset) => ({
               value: asset.id,
               label: asset.name,
+            }))}
+          />
+        )}
+
+        {isDebtPayment && (
+          <ThemedSelect
+            label="Hutang"
+            value={draft.liabilityId ?? ""}
+            placeholder="Pilih hutang"
+            onChange={(liabilityId) =>
+              onChange({
+                ...draft,
+                liabilityId: liabilityId || null,
+              })
+            }
+            options={liabilities.map((liability) => ({
+              value: liability.id,
+              label: liability.name,
+              description: `Sisa Rp${liability.remainingAmount.toLocaleString(
+                "id-ID",
+              )}`,
             }))}
           />
         )}
