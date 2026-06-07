@@ -12,6 +12,7 @@ import {
 import { MarketPriceSection } from "@/components/portfolio/market-price-section";
 import { usePrivacy } from "@/components/providers/privacy-provider";
 import { ConfirmActionForm } from "@/components/ui/confirm-action-form";
+import { ThemedNumberInput } from "@/components/ui/themed-number-input";
 import { portfolioAssetTypeMeta } from "@/constants/portfolio";
 import type {
   PortfolioAssetItem,
@@ -197,27 +198,16 @@ export function AssetForm({
 
         {showUnitTracking && (
           <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">
-            <label className="block">
-              <span className="mb-2 block text-sm font-bold">
-                Jumlah unit (opsional)
-              </span>
-              <input
-                name="quantity"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="any"
-                defaultValue={asset?.quantity ?? ""}
-                onChange={(event) => setQuantityValue(event.target.value)}
-                placeholder="0"
-                className={inputClassName}
-              />
-              {quantityHelpers[type] && (
-                <span className="mt-2 block text-xs text-muted">
-                  {quantityHelpers[type]}
-                </span>
-              )}
-            </label>
+            <ThemedNumberInput
+              label="Jumlah unit (opsional)"
+              name="quantity"
+              inputMode="decimal"
+              min="0"
+              defaultValue={asset?.quantity ?? ""}
+              onChange={setQuantityValue}
+              placeholder="0"
+              helperText={quantityHelpers[type]}
+            />
 
             <label className="block">
               <span className="mb-2 block text-sm font-bold">Satuan</span>

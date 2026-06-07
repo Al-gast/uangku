@@ -10,6 +10,7 @@ import {
   type PortfolioActionState,
 } from "@/app/(app)/portfolio/actions";
 import { ConfirmActionForm } from "@/components/ui/confirm-action-form";
+import { ThemedDateInput } from "@/components/ui/themed-date-input";
 import type { PortfolioLiabilityItem } from "@/lib/portfolio/types";
 
 const initialState: PortfolioActionState = { error: null };
@@ -112,17 +113,11 @@ export function LiabilityForm({
           defaultValue={liability?.remainingAmount}
         />
 
-        <label className="block">
-          <span className="mb-2 block text-sm font-bold">
-            Tanggal jatuh tempo (opsional)
-          </span>
-          <input
-            name="due_date"
-            type="date"
-            defaultValue={liability?.dueDate ?? ""}
-            className={inputClassName}
-          />
-        </label>
+        <ThemedDateInput
+          label="Tanggal jatuh tempo (opsional)"
+          name="due_date"
+          defaultValue={liability?.dueDate ?? ""}
+        />
 
         <label className="block">
           <span className="mb-2 block text-sm font-bold">
