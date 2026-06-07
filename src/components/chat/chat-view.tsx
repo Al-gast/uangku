@@ -182,7 +182,7 @@ export function ChatView({
                   .
                 </p>
                 <p className="mt-2 text-sm leading-6 text-muted">
-                  Atau pilih template di bawah untuk mulai.
+                  Atau ketuk template di bawah.
                 </p>
               </div>
             </div>

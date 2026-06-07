@@ -24,8 +24,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <AuthPageShell
       eyebrow="Selamat datang"
-      title="Keuangan lebih jelas, setiap hari."
-      subtitle="Masuk ke akun UangKu kamu."
+      title="Kelola uang, tanpa ribet."
+      subtitle="Masuk untuk melanjutkan."
       isConfigured={isConfigured}
       error={error}
       message={message}

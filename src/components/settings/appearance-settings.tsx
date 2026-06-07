@@ -106,7 +106,7 @@ export function AppearanceSettings({
               }`}
             >
               <span
-                className="size-5 rounded-full border-2 border-white shadow-sm"
+                className="size-5 rounded-full border-2 border-white/80 shadow-sm"
                 style={{ backgroundColor: theme.color }}
               />
               <span className="text-sm font-bold">{theme.label}</span>

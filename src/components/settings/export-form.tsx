@@ -96,7 +96,7 @@ function ExportOption({
         className={`mt-4 flex min-h-12 w-full items-center justify-center rounded-control px-4 text-sm font-bold transition active:scale-[0.98] ${
           primary
             ? "bg-accent text-accent-foreground"
-            : "border border-accent text-accent-strong"
+            : "border-2 border-accent/50 text-accent-strong"
         }`}
       >
         Download {title.replace("Export ", "")}

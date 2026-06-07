@@ -12,7 +12,7 @@ export default function SettingsPage() {
   const settingsItems = [
     {
       href: "/settings/accounts",
-      title: "Accounts",
+      title: "Akun",
       description: "Kelola tunai, rekening bank, dan e-wallet.",
     },
     {
@@ -22,17 +22,17 @@ export default function SettingsPage() {
     },
     {
       href: "/settings/appearance",
-      title: "Appearance",
+      title: "Tampilan",
       description: "Pilih mode tampilan dan warna tema.",
     },
     {
       href: "/settings/privacy",
-      title: "Privacy & Security",
-      description: "Sembunyikan nominal saat berada di tempat umum.",
+      title: "Privasi",
+      description: "Sembunyikan nominal saat di tempat umum.",
     },
     {
       href: "/settings/export",
-      title: "Export Data",
+      title: "Ekspor Data",
       description: "Download data UangKu untuk backup pribadi.",
     },
   ];
@@ -64,10 +64,10 @@ export default function SettingsPage() {
       </div>
       <section className="mt-4 rounded-card border border-accent/25 bg-accent-soft p-5">
         <p className="text-sm font-bold text-accent-strong">
-          Bisa dipasang ke Home Screen sebagai PWA.
+          Bisa dipasang ke layar utama.
         </p>
         <p className="mt-1 text-xs leading-5 text-muted">
-          Gunakan menu browser dan pilih Add to Home Screen atau Install App.
+          Buka menu browser → Tambah ke Layar Utama.
         </p>
       </section>
       <LogoutButton />

@@ -11,7 +11,7 @@ export default function ExportPage() {
     <>
       <Link
         href="/settings"
-        className="mb-5 inline-flex text-sm font-bold text-muted"
+        className="mb-5 inline-flex min-h-11 items-center text-sm font-bold text-muted"
       >
         ← Settings
       </Link>
@@ -20,7 +20,7 @@ export default function ExportPage() {
           Backup Pribadi
         </p>
         <h1 className="mt-2 text-3xl font-bold tracking-[-0.04em]">
-          Export Data
+          Ekspor Data
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted">
           Download data UangKu kamu untuk backup pribadi.

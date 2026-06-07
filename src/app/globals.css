@@ -150,3 +150,54 @@ a {
   color: var(--accent-foreground);
   background: var(--accent);
 }
+
+/* Dialog open animation */
+dialog[open] {
+  animation: dialog-in 150ms ease;
+}
+
+dialog[open]::backdrop {
+  animation: backdrop-in 150ms ease;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Donut chart draw-in animation */
+@keyframes donut-draw {
+  from {
+    stroke-dashoffset: var(--circumference);
+    opacity: 0;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.donut-segment {
+  animation: donut-draw 600ms ease-out forwards;
+}
+
+/* Template chip scroll fade */
+.scroll-fade-right {
+  mask-image: linear-gradient(to right, black 85%, transparent);
+  -webkit-mask-image: linear-gradient(to right, black 85%, transparent);
+}

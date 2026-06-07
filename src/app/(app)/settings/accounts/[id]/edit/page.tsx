@@ -27,7 +27,7 @@ export default async function EditAccountPage({
     <>
       <Link
         href="/settings/accounts"
-        className="mb-5 inline-flex text-sm font-bold text-muted"
+        className="mb-5 inline-flex min-h-11 items-center text-sm font-bold text-muted"
       >
         ← Accounts
       </Link>

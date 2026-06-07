@@ -39,6 +39,7 @@ export function DonutChart({ slices }: { slices: AllocationSlice[] }) {
         return (
           <circle
             key={slice.key}
+            className="donut-segment"
             cx="80"
             cy="80"
             r={RADIUS}
@@ -47,6 +48,10 @@ export function DonutChart({ slices }: { slices: AllocationSlice[] }) {
             strokeWidth="28"
             strokeDasharray={`${length} ${CIRCUMFERENCE - length}`}
             strokeDashoffset={-offset}
+            style={{
+              ["--circumference" as string]: CIRCUMFERENCE,
+              animationDelay: `${index * 100}ms`,
+            }}
           />
         );
       })}

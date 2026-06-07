@@ -63,8 +63,7 @@ export function PrivacyToggle({
         <span>
           <span className="block font-bold">Privacy Mode</span>
           <span className="mt-1 block text-sm leading-6 text-muted">
-            Sembunyikan nominal saldo, transaksi, aset, dan budget saat kamu
-            membuka aplikasi di tempat umum.
+            Sembunyikan nominal saat di tempat umum.
           </span>
         </span>
         <span

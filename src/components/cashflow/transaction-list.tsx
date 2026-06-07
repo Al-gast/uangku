@@ -53,6 +53,12 @@ export function TransactionList({
         <p className="mt-2 text-sm leading-6 text-muted">
           Mulai catat pemasukan atau pengeluaran pertama kamu.
         </p>
+        <Link
+          href="/cashflow/new"
+          className="mt-4 inline-flex min-h-11 items-center rounded-control bg-accent px-5 text-sm font-bold text-accent-foreground transition active:scale-[0.98]"
+        >
+          + Catat Transaksi
+        </Link>
       </section>
     );
   }

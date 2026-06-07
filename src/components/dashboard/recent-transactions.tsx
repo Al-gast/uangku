@@ -50,7 +50,7 @@ export function RecentTransactions({
 
       {transactions.length === 0 ? (
         <div className="rounded-card border border-border bg-surface p-5 text-sm leading-6 text-muted shadow-card">
-          Belum ada transaksi untuk ditampilkan.
+          Belum ada transaksi bulan ini.
         </div>
       ) : (
         <div className="overflow-hidden rounded-card border border-border bg-surface shadow-card">

@@ -15,7 +15,7 @@ export function TemplateChips({
 
   return (
     <div className="space-y-2 border-t border-border bg-background py-2">
-      <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="scroll-fade-right -mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {CHAT_TEMPLATE_GROUPS.map((group) => {
           const isActive = group.id === activeGroup.id;
 
@@ -36,7 +36,7 @@ export function TemplateChips({
         })}
       </div>
 
-      <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="scroll-fade-right -mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {activeGroup.templates.map((template) => (
           <button
             key={template.label}

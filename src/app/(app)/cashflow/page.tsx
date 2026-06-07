@@ -24,7 +24,7 @@ export default async function CashflowPage({
   ]);
 
   return (
-    <>
+    <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <PageIntro
           eyebrow="Transaksi"
@@ -41,17 +41,17 @@ export default async function CashflowPage({
       </div>
 
       {success && (
-        <p className="mb-5 rounded-control border border-income/30 bg-income/10 p-4 text-sm leading-6 text-income">
+        <p className="rounded-control border border-income/30 bg-income/10 p-4 text-sm leading-6 text-income">
           {success}
         </p>
       )}
       {(queryError || result.error) && (
-        <p className="mb-5 rounded-control border border-expense/30 bg-expense/10 p-4 text-sm leading-6 text-expense">
+        <p className="rounded-control border border-expense/30 bg-expense/10 p-4 text-sm leading-6 text-expense">
           {queryError || result.error}
         </p>
       )}
 
-      <section className="mb-5 rounded-card border border-border bg-surface p-4">
+      <section className="rounded-card border border-border bg-surface p-4">
         <p className="text-xs font-bold uppercase tracking-wider text-muted">
           Ringkasan
         </p>
@@ -61,13 +61,15 @@ export default async function CashflowPage({
         </p>
       </section>
 
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-bold">Transaksi terbaru</h2>
-        <span className="text-xs font-semibold text-muted">
-          {result.transactions.length} transaksi
-        </span>
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-bold">Transaksi terbaru</h2>
+          <span className="text-xs font-semibold text-muted">
+            {result.transactions.length} transaksi
+          </span>
+        </div>
+        <TransactionList transactions={result.transactions} />
       </div>
-      <TransactionList transactions={result.transactions} />
-    </>
+    </div>
   );
 }

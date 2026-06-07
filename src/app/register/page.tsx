@@ -23,8 +23,8 @@ export default async function RegisterPage({
   return (
     <AuthPageShell
       eyebrow="Mulai sekarang"
-      title="Buat akun UangKu."
-      subtitle="Mulai catat uang, saldo, dan budget kamu dengan lebih rapi."
+      title="Mulai kelola keuangan kamu."
+      subtitle="Buat akun UangKu untuk mencatat uang, saldo, dan budget."
       isConfigured={isConfigured}
       error={error}
       message={message}

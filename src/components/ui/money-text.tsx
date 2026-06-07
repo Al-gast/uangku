@@ -20,7 +20,10 @@ export function MoneyText<T extends ElementType = "span">({
   const Component = as ?? "span";
 
   return (
-    <Component {...props}>
+    <Component
+      {...props}
+      className={`tabular-nums ${props.className ?? ""}`}
+    >
       {privacyEnabled ? "Rp••••••" : `${sign}${formatIdr(value)}`}
     </Component>
   );

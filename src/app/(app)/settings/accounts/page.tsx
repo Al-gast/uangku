@@ -27,16 +27,16 @@ export default async function AccountsPage({
     <>
       <Link
         href="/settings"
-        className="mb-5 inline-flex text-sm font-bold text-muted"
+        className="mb-5 inline-flex min-h-11 items-center text-sm font-bold text-muted"
       >
         ← Settings
       </Link>
       <header className="mb-7">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">
-          Akun Harian
+          Kelola Akun
         </p>
         <h1 className="mt-2 text-3xl font-bold tracking-[-0.04em]">
-          Accounts
+          Akun
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted">
           Kelola tunai, rekening bank, dan e-wallet untuk pencatatan cashflow.
