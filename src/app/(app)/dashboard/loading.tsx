@@ -62,7 +62,23 @@ export default function DashboardLoading() {
 
       <section>
         <Skeleton className="h-6 w-40" />
-        <Skeleton className="mt-3 h-20 w-full bg-surface" />
+        <div className="mt-3 overflow-hidden rounded-card border border-border">
+          {[0, 1, 2].map((item) => (
+            <div
+              key={item}
+              className={`bg-surface p-4 ${
+                item > 0 ? "border-t border-border" : ""
+              }`}
+            >
+              <div className="flex justify-between">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-10" />
+              </div>
+              <Skeleton className="mt-3 h-2 w-full" />
+              <Skeleton className="mt-2 h-3 w-24" />
+            </div>
+          ))}
+        </div>
       </section>
     </div>
   );

@@ -205,10 +205,16 @@ export async function getBudgetWarnings(): Promise<{
   const result = await getCurrentMonthBudgets();
 
   return {
-    warnings: result.budgets
-      .filter((budget) => budget.progressPercent >= 80)
-      .sort((a, b) => b.progressPercent - a.progressPercent)
-      .slice(0, 3),
+    warnings: selectBudgetWarnings(result.budgets),
     error: result.error,
   };
+}
+
+export function selectBudgetWarnings(
+  budgets: BudgetProgressItem[],
+): BudgetWarning[] {
+  return [...budgets]
+    .filter((budget) => budget.progressPercent >= 80)
+    .sort((a, b) => b.progressPercent - a.progressPercent)
+    .slice(0, 3);
 }

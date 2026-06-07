@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { AccountSummary } from "@/components/dashboard/account-summary";
-import { BudgetWarnings } from "@/components/dashboard/budget-warnings";
+import { BudgetSummary } from "@/components/dashboard/budget-summary";
 import { DashboardError } from "@/components/dashboard/dashboard-error";
 import { EmptyHero, HeroCard } from "@/components/dashboard/hero-card";
 import { DashboardPortfolioSummary } from "@/components/dashboard/portfolio-summary";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { StatCards } from "@/components/dashboard/stat-cards";
 import { PrivacyToggle } from "@/components/settings/privacy-toggle";
-import { getBudgetWarnings } from "@/lib/budgets/data";
+import { getCurrentMonthBudgets } from "@/lib/budgets/data";
 import { getDashboardData } from "@/lib/dashboard/data";
 import { getPortfolioSummary } from "@/lib/portfolio/data";
 
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 export default async function DashboardPage() {
   const [data, budgetResult, portfolioSummary] = await Promise.all([
     getDashboardData(),
-    getBudgetWarnings(),
+    getCurrentMonthBudgets(),
     getPortfolioSummary(),
   ]);
   const greeting = data.profileName
@@ -66,7 +66,10 @@ export default async function DashboardPage() {
         error={data.accountError}
       />
 
-      <BudgetWarnings warnings={budgetResult.warnings} />
+      <BudgetSummary
+        budgets={budgetResult.budgets}
+        error={budgetResult.error}
+      />
 
       {!data.dashboardError && (
         <RecentTransactions transactions={data.recentTransactions} />
