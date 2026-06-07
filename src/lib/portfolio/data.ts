@@ -67,6 +67,7 @@ function mapAssets(
     quantity: number | string | null;
     unit: string | null;
     last_price: number | string | null;
+    last_price_updated_at: string | null;
     total_cost: number | string | null;
     current_value: number | string;
     notes: string | null;
@@ -82,6 +83,7 @@ function mapAssets(
       unit: asset.unit,
       unitPrice:
         asset.last_price === null ? null : Number(asset.last_price),
+      unitPriceUpdatedAt: asset.last_price_updated_at,
       totalCost: asset.total_cost === null ? null : Number(asset.total_cost),
       currentValue: Number(asset.current_value),
       notes: asset.notes,
@@ -191,7 +193,7 @@ export async function getPortfolioData(): Promise<PortfolioData> {
     supabase
       .from("assets")
       .select(
-        "id,name,type,platform,quantity,unit,last_price,total_cost,current_value,notes",
+        "id,name,type,platform,quantity,unit,last_price,last_price_updated_at,total_cost,current_value,notes",
       )
       .in("type", ["rdpu", "rdpt", "gold", "crypto", "stock", "other_asset"]),
     supabase
@@ -244,7 +246,7 @@ export async function getPortfolioAsset(assetId: string) {
   const { data, error } = await supabase
     .from("assets")
     .select(
-      "id,name,type,platform,quantity,unit,last_price,total_cost,current_value,notes",
+      "id,name,type,platform,quantity,unit,last_price,last_price_updated_at,total_cost,current_value,notes",
     )
     .eq("id", assetId)
     .in("type", ["rdpu", "rdpt", "gold", "crypto", "stock", "other_asset"])

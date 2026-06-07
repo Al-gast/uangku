@@ -22,10 +22,15 @@ Fill these values from the Supabase project dashboard:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-or-publishable-key
+COINGECKO_API_KEY=your-optional-demo-api-key
 ```
 
 The frontend must only use the anon or publishable key. Never add a Supabase
 service-role or secret key to a `NEXT_PUBLIC_` variable.
+
+`COINGECKO_API_KEY` is optional and used only on the server for manual BTC/ETH
+price refresh. Keyless public access remains available. Never expose this key
+through a `NEXT_PUBLIC_` variable.
 
 Run the development server:
 

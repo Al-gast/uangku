@@ -6,11 +6,28 @@ import {
   parseAssetForm,
   parseLiabilityForm,
 } from "@/lib/portfolio/validation";
+import { getSupportedCryptoId } from "@/lib/prices/assets";
+import { getLatestCryptoPrice } from "@/lib/prices/coingecko";
 import { createClient } from "@/lib/supabase/server";
 
 export type PortfolioActionState = {
   error: string | null;
 };
+
+export type MarketPricePreview = {
+  unitPrice: number;
+  quantity: number;
+  calculatedValue: number;
+  currentValue: number;
+  updatedAt: string;
+};
+
+export type MarketPriceActionResult = {
+  error: string | null;
+  preview: MarketPricePreview | null;
+};
+
+const MAX_ASSET_VALUE = 999_999_999_999_999;
 
 async function getAuthenticatedContext() {
   const supabase = await createClient();
@@ -36,6 +53,137 @@ function actionError(
 function revalidatePortfolio() {
   revalidatePath("/portfolio");
   revalidatePath("/dashboard");
+}
+
+function calculateMarketValue(quantity: number, unitPrice: number) {
+  const calculatedValue =
+    Math.round(quantity * unitPrice * 100) / 100;
+
+  if (
+    !Number.isFinite(calculatedValue) ||
+    calculatedValue < 0 ||
+    calculatedValue > MAX_ASSET_VALUE
+  ) {
+    throw new Error("Nilai hasil perhitungan terlalu besar.");
+  }
+
+  return calculatedValue;
+}
+
+async function getRefreshableAsset(assetId: string) {
+  const { supabase, userId } = await getAuthenticatedContext();
+  const { data, error } = await supabase
+    .from("assets")
+    .select("id,name,type,unit,quantity,current_value")
+    .eq("id", assetId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error("Aset tidak ditemukan.");
+  }
+
+  const coinId = getSupportedCryptoId(data);
+  const quantity =
+    data.quantity === null ? null : Number(data.quantity);
+
+  if (!coinId) {
+    throw new Error("Harga otomatis belum tersedia untuk aset ini.");
+  }
+
+  if (
+    quantity === null ||
+    !Number.isFinite(quantity) ||
+    quantity <= 0
+  ) {
+    throw new Error(
+      "Isi jumlah unit lebih dari 0 sebelum mengambil harga.",
+    );
+  }
+
+  return {
+    supabase,
+    userId,
+    asset: {
+      id: data.id,
+      coinId,
+      quantity,
+      currentValue: Number(data.current_value),
+    },
+  };
+}
+
+export async function previewMarketPrice(
+  assetId: string,
+): Promise<MarketPriceActionResult> {
+  try {
+    const { asset } = await getRefreshableAsset(assetId);
+    const latestPrice = await getLatestCryptoPrice(asset.coinId);
+
+    return {
+      error: null,
+      preview: {
+        unitPrice: latestPrice.unitPrice,
+        quantity: asset.quantity,
+        calculatedValue: calculateMarketValue(
+          asset.quantity,
+          latestPrice.unitPrice,
+        ),
+        currentValue: asset.currentValue,
+        updatedAt: latestPrice.updatedAt,
+      },
+    };
+  } catch {
+    return {
+      error: "Harga belum bisa diambil. Kamu tetap bisa isi manual.",
+      preview: null,
+    };
+  }
+}
+
+export async function applyMarketPrice(
+  assetId: string,
+): Promise<MarketPriceActionResult> {
+  try {
+    const { supabase, userId, asset } =
+      await getRefreshableAsset(assetId);
+    const latestPrice = await getLatestCryptoPrice(asset.coinId);
+    const calculatedValue = calculateMarketValue(
+      asset.quantity,
+      latestPrice.unitPrice,
+    );
+    const { error } = await supabase
+      .from("assets")
+      .update({
+        last_price: latestPrice.unitPrice,
+        last_price_updated_at: latestPrice.updatedAt,
+        current_value: calculatedValue,
+      })
+      .eq("id", asset.id)
+      .eq("user_id", userId);
+
+    if (error) {
+      throw new Error("Harga aset belum berhasil diperbarui.");
+    }
+
+    revalidatePortfolio();
+
+    return {
+      error: null,
+      preview: {
+        unitPrice: latestPrice.unitPrice,
+        quantity: asset.quantity,
+        calculatedValue,
+        currentValue: calculatedValue,
+        updatedAt: latestPrice.updatedAt,
+      },
+    };
+  } catch {
+    return {
+      error: "Harga belum bisa diterapkan. Kamu tetap bisa isi manual.",
+      preview: null,
+    };
+  }
 }
 
 export async function createAsset(
@@ -96,7 +244,7 @@ export async function updateAsset(
     const { supabase, userId } = await getAuthenticatedContext();
     const { data: existing } = await supabase
       .from("assets")
-      .select("id")
+      .select("id,last_price,last_price_updated_at")
       .eq("id", assetId)
       .eq("user_id", userId)
       .in("type", ["rdpu", "rdpt", "gold", "crypto", "stock", "other_asset"])
@@ -106,6 +254,9 @@ export async function updateAsset(
       throw new Error("Aset tidak ditemukan.");
     }
 
+    const existingUnitPrice =
+      existing.last_price === null ? null : Number(existing.last_price);
+    const unitPriceChanged = existingUnitPrice !== input.unitPrice;
     const { error } = await supabase
       .from("assets")
       .update({
@@ -116,7 +267,11 @@ export async function updateAsset(
         unit: input.unit,
         last_price: input.unitPrice,
         last_price_updated_at:
-          input.unitPrice === null ? null : new Date().toISOString(),
+          input.unitPrice === null
+            ? null
+            : unitPriceChanged
+              ? new Date().toISOString()
+              : existing.last_price_updated_at,
         total_cost: input.totalCost,
         current_value: input.currentValue,
         notes: input.notes,

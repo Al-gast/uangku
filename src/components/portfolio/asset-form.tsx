@@ -9,6 +9,7 @@ import {
   updateAsset,
   type PortfolioActionState,
 } from "@/app/(app)/portfolio/actions";
+import { MarketPriceSection } from "@/components/portfolio/market-price-section";
 import { usePrivacy } from "@/components/providers/privacy-provider";
 import { ConfirmActionForm } from "@/components/ui/confirm-action-form";
 import { portfolioAssetTypeMeta } from "@/constants/portfolio";
@@ -103,6 +104,7 @@ export function AssetForm({
   );
   const { privacyEnabled } = usePrivacy();
   const currentValueRef = useRef<HTMLInputElement>(null);
+  const unitPriceRef = useRef<HTMLInputElement>(null);
   const [quantityValue, setQuantityValue] = useState(
     String(asset?.quantity ?? ""),
   );
@@ -236,6 +238,7 @@ export function AssetForm({
               name="unit_price"
               label="Harga per unit (opsional)"
               defaultValue={asset?.unitPrice}
+              inputRef={unitPriceRef}
               masked={privacyEnabled}
               onValueChange={setUnitPriceValue}
             />
@@ -251,6 +254,23 @@ export function AssetForm({
               Hitung nilai saat ini
             </button>
           </div>
+        )}
+
+        {asset && (
+          <MarketPriceSection
+            asset={asset}
+            onApplied={({ unitPrice, currentValue }) => {
+              setUnitPriceValue(String(unitPrice));
+
+              if (unitPriceRef.current) {
+                unitPriceRef.current.value = String(unitPrice);
+              }
+
+              if (currentValueRef.current) {
+                currentValueRef.current.value = String(currentValue);
+              }
+            }}
+          />
         )}
 
         {showNotes && (

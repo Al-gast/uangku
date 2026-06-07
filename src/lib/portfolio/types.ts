@@ -30,6 +30,7 @@ export type PortfolioAssetItem = {
   quantity: number | null;
   unit: string | null;
   unitPrice: number | null;
+  unitPriceUpdatedAt: string | null;
   totalCost: number | null;
   currentValue: number;
   notes: string | null;
