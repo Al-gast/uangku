@@ -15,6 +15,8 @@ type TransactionRow = {
   source: CashflowTransactionItem["source"];
   type: ManualTransactionType;
   amount: number | string;
+  admin_fee_amount: number | string;
+  admin_fee_category_id: string | null;
   transaction_date: string;
   merchant: string | null;
   notes: string | null;
@@ -26,9 +28,12 @@ type TransactionRow = {
 
 export async function ensureManualCashflowCategories() {
   const supabase = await createClient();
-  const { error } = await supabase.rpc("ensure_manual_cashflow_categories");
+  const [{ error }, { error: adminFeeError }] = await Promise.all([
+    supabase.rpc("ensure_manual_cashflow_categories"),
+    supabase.rpc("ensure_admin_fee_category"),
+  ]);
 
-  return { supabase, error };
+  return { supabase, error: error ?? adminFeeError };
 }
 
 export async function getCashflowFormOptions() {
@@ -106,9 +111,21 @@ export async function mapTransactionRows(
       ),
     ),
   ];
-  const categoryIds = [...new Set(rows.map((row) => row.category_id))];
+  const categoryIds = [
+    ...new Set(
+      rows.flatMap((row) =>
+        [row.category_id, row.admin_fee_category_id].filter(
+          (id): id is string => Boolean(id),
+        ),
+      ),
+    ),
+  ];
   const assetIds = [
-    ...new Set(rows.map((row) => row.asset_id).filter((id): id is string => Boolean(id))),
+    ...new Set(
+      rows
+        .map((row) => row.asset_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
   ];
 
   const [
@@ -142,6 +159,11 @@ export async function mapTransactionRows(
     source: row.source,
     type: row.type,
     amount: Number(row.amount),
+    adminFeeAmount: Number(row.admin_fee_amount),
+    adminFeeCategoryId: row.admin_fee_category_id,
+    adminFeeCategoryName: row.admin_fee_category_id
+      ? (categoryNames.get(row.admin_fee_category_id) ?? "Biaya Admin")
+      : null,
     transactionDate: row.transaction_date,
     merchant: row.merchant,
     notes: row.notes,
@@ -163,7 +185,7 @@ export async function getCashflowTransactions() {
   const { data, error } = await supabase
     .from("transactions")
     .select(
-      "id,source,type,amount,transaction_date,merchant,notes,account_id,transfer_to_account_id,asset_id,category_id",
+      "id,source,type,amount,admin_fee_amount,admin_fee_category_id,transaction_date,merchant,notes,account_id,transfer_to_account_id,asset_id,category_id",
     )
     .in("type", [
       "income",
@@ -196,7 +218,7 @@ export async function getCashflowTransaction(transactionId: string) {
   const { data, error } = await supabase
     .from("transactions")
     .select(
-      "id,source,type,amount,transaction_date,merchant,notes,account_id,transfer_to_account_id,asset_id,category_id",
+      "id,source,type,amount,admin_fee_amount,admin_fee_category_id,transaction_date,merchant,notes,account_id,transfer_to_account_id,asset_id,category_id",
     )
     .eq("id", transactionId)
     .in("type", [

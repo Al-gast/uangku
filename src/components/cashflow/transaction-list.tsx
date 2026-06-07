@@ -128,6 +128,18 @@ export function TransactionList({
               </p>
             )}
 
+            {transaction.adminFeeAmount > 0 && (
+              <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3 text-xs">
+                <span className="font-semibold text-muted">
+                  {transaction.adminFeeCategoryName ?? "Biaya Admin"}
+                </span>
+                <MoneyText
+                  value={transaction.adminFeeAmount}
+                  className="font-bold text-expense"
+                />
+              </div>
+            )}
+
             <div className="mt-4 flex items-center justify-end gap-4 border-t border-border pt-3">
               <Link
                 href={`/cashflow/${transaction.id}/edit`}

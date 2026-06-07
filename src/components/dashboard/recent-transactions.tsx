@@ -92,6 +92,12 @@ export function RecentTransactions({
                       {account} ·{" "}
                       {formatCompactDateId(transaction.transactionDate)}
                     </p>
+                    {transaction.adminFeeAmount > 0 && (
+                      <p className="mt-1 text-xs font-semibold text-expense">
+                        Biaya admin{" "}
+                        <MoneyText value={transaction.adminFeeAmount} />
+                      </p>
+                    )}
                   </div>
                 </div>
                 <MoneyText

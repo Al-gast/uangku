@@ -14,6 +14,8 @@ export type Transaction = {
   user_id: string;
   type: TransactionType;
   amount: number;
+  admin_fee_amount: number;
+  admin_fee_category_id: string | null;
   category_id: string;
   account_id: string;
   transfer_to_account_id: string | null;

@@ -3,6 +3,7 @@ import type { ManualTransactionType } from "@/lib/cashflow/types";
 export type ManualTransactionInput = {
   type: ManualTransactionType;
   amount: number;
+  adminFeeAmount: number;
   accountId: string;
   categoryId: string;
   transactionDate: string;
@@ -39,6 +40,30 @@ function parseAmount(value: FormDataEntryValue | null) {
   return amount;
 }
 
+function parseAdminFee(value: FormDataEntryValue | null) {
+  const rawValue = String(value ?? "").trim();
+
+  if (!rawValue) {
+    return 0;
+  }
+
+  const normalized = rawValue
+    .replace(/\s/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
+  const amount = Number(normalized);
+
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new Error("Biaya admin tidak boleh negatif.");
+  }
+
+  if (amount > 999_999_999_999_999) {
+    throw new Error("Biaya admin terlalu besar.");
+  }
+
+  return amount;
+}
+
 export function parseManualTransactionForm(
   formData: FormData,
 ): ManualTransactionInput {
@@ -52,9 +77,23 @@ export function parseManualTransactionForm(
   const notes = String(formData.get("notes") ?? "").trim();
   const isInvestment =
     type === "investment_buy" || type === "investment_sell";
+  const amount = parseAmount(formData.get("amount"));
+  const adminFeeAmount = parseAdminFee(formData.get("admin_fee_amount"));
+  const supportsAdminFee =
+    type === "transfer" ||
+    type === "investment_buy" ||
+    type === "investment_sell";
 
   if (!transactionTypes.has(type)) {
     throw new Error("Pilih tipe transaksi.");
+  }
+
+  if (!supportsAdminFee && adminFeeAmount > 0) {
+    throw new Error("Biaya admin hanya untuk transfer atau investasi.");
+  }
+
+  if (type === "investment_sell" && adminFeeAmount > amount) {
+    throw new Error("Biaya admin tidak boleh lebih besar dari nominal jual.");
   }
 
   if (!accountId) {
@@ -103,7 +142,8 @@ export function parseManualTransactionForm(
 
   return {
     type,
-    amount: parseAmount(formData.get("amount")),
+    amount,
+    adminFeeAmount,
     accountId,
     categoryId,
     transactionDate: `${transactionDate}T12:00:00+07:00`,

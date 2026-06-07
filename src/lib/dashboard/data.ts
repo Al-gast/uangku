@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 type MonthlyTransactionRow = {
   type: ManualTransactionType;
   amount: number | string;
+  admin_fee_amount: number | string;
 };
 
 type RecentTransactionRow = {
@@ -19,6 +20,8 @@ type RecentTransactionRow = {
   source: CashflowTransactionItem["source"];
   type: ManualTransactionType;
   amount: number | string;
+  admin_fee_amount: number | string;
+  admin_fee_category_id: string | null;
   transaction_date: string;
   merchant: string | null;
   notes: string | null;
@@ -37,8 +40,14 @@ export async function getDashboardData(): Promise<DashboardData> {
       supabase.from("profiles").select("full_name").maybeSingle(),
       supabase
         .from("transactions")
-        .select("type,amount")
-        .in("type", ["income", "expense", "transfer"])
+        .select("type,amount,admin_fee_amount")
+        .in("type", [
+          "income",
+          "expense",
+          "transfer",
+          "investment_buy",
+          "investment_sell",
+        ])
         .gte("transaction_date", month.start)
         .lt("transaction_date", month.end),
       supabase
@@ -50,7 +59,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       supabase
         .from("transactions")
         .select(
-          "id,source,type,amount,transaction_date,merchant,notes,account_id,transfer_to_account_id,asset_id,category_id",
+          "id,source,type,amount,admin_fee_amount,admin_fee_category_id,transaction_date,merchant,notes,account_id,transfer_to_account_id,asset_id,category_id",
         )
         .in("type", [
           "income",
@@ -69,8 +78,13 @@ export async function getDashboardData(): Promise<DashboardData> {
     .filter((transaction) => transaction.type === "income")
     .reduce((total, transaction) => total + Number(transaction.amount), 0);
   const monthlyExpense = monthlyRows
-    .filter((transaction) => transaction.type === "expense")
-    .reduce((total, transaction) => total + Number(transaction.amount), 0);
+    .reduce(
+      (total, transaction) =>
+        total +
+        (transaction.type === "expense" ? Number(transaction.amount) : 0) +
+        Number(transaction.admin_fee_amount),
+      0,
+    );
 
   const accounts: DashboardAccount[] = (accountResult.data ?? []).map(
     (account) => ({

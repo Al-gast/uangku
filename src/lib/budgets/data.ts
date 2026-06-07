@@ -17,16 +17,26 @@ type BudgetRow = {
   end_date: string | null;
 };
 
-type ExpenseRow = {
+type BudgetTransactionRow = {
+  type:
+    | "expense"
+    | "transfer"
+    | "investment_buy"
+    | "investment_sell";
   category_id: string;
   amount: number | string;
+  admin_fee_amount: number | string;
+  admin_fee_category_id: string | null;
 };
 
 export async function ensureBudgetCategories() {
   const supabase = await createClient();
-  const { error } = await supabase.rpc("ensure_budget_categories");
+  const [{ error }, { error: adminFeeError }] = await Promise.all([
+    supabase.rpc("ensure_budget_categories"),
+    supabase.rpc("ensure_admin_fee_category"),
+  ]);
 
-  return { supabase, error };
+  return { supabase, error: error ?? adminFeeError };
 }
 
 export async function getBudgetCategoryOptions() {
@@ -91,9 +101,15 @@ export async function getCurrentMonthBudgets() {
       supabase.from("categories").select("id,name").in("id", categoryIds),
       supabase
         .from("transactions")
-        .select("category_id,amount")
-        .eq("type", "expense")
-        .in("category_id", categoryIds)
+        .select(
+          "type,category_id,amount,admin_fee_amount,admin_fee_category_id",
+        )
+        .in("type", [
+          "expense",
+          "transfer",
+          "investment_buy",
+          "investment_sell",
+        ])
         .gte("transaction_date", month.start)
         .lt("transaction_date", month.end),
     ]);
@@ -111,12 +127,29 @@ export async function getCurrentMonthBudgets() {
   );
   const spentByCategory = new Map<string, number>();
 
-  for (const transaction of (expenseResult.data ?? []) as ExpenseRow[]) {
-    spentByCategory.set(
-      transaction.category_id,
-      (spentByCategory.get(transaction.category_id) ?? 0) +
-        Number(transaction.amount),
-    );
+  for (const transaction of (expenseResult.data ??
+    []) as BudgetTransactionRow[]) {
+    if (
+      transaction.type === "expense" &&
+      categoryIds.includes(transaction.category_id)
+    ) {
+      spentByCategory.set(
+        transaction.category_id,
+        (spentByCategory.get(transaction.category_id) ?? 0) +
+          Number(transaction.amount),
+      );
+    }
+
+    if (
+      transaction.admin_fee_category_id &&
+      categoryIds.includes(transaction.admin_fee_category_id)
+    ) {
+      spentByCategory.set(
+        transaction.admin_fee_category_id,
+        (spentByCategory.get(transaction.admin_fee_category_id) ?? 0) +
+          Number(transaction.admin_fee_amount),
+      );
+    }
   }
 
   return {

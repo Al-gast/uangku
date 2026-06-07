@@ -43,6 +43,10 @@ function isInvestmentType(type: ManualTransactionType) {
   return type === "investment_buy" || type === "investment_sell";
 }
 
+function supportsAdminFee(type: ManualTransactionType) {
+  return type === "transfer" || isInvestmentType(type);
+}
+
 function SubmitButton({ isEditing }: { isEditing: boolean }) {
   const { pending } = useFormStatus();
 
@@ -191,6 +195,32 @@ export function TransactionForm({
           />
         </div>
       </label>
+
+      {supportsAdminFee(type) && (
+        <label className="block">
+          <span className="mb-2 block text-sm font-bold">Biaya admin</span>
+          <div className="flex min-h-12 items-center rounded-control border border-border bg-surface px-4 focus-within:border-accent focus-within:ring-4 focus-within:ring-accent-soft">
+            <span className="mr-2 font-bold text-muted">Rp</span>
+            <input
+              name="admin_fee_amount"
+              inputMode="numeric"
+              min="0"
+              defaultValue={
+                transaction?.adminFeeAmount
+                  ? transaction.adminFeeAmount
+                  : ""
+              }
+              placeholder="0"
+              className="min-w-0 flex-1 bg-transparent text-right font-bold outline-none"
+            />
+          </div>
+          <p className="mt-2 text-xs leading-5 text-muted">
+            {type === "investment_sell"
+              ? "Nominal masuk ke akun akan dikurangi biaya admin."
+              : "Kosongkan jika tidak ada biaya."}
+          </p>
+        </label>
+      )}
 
       <label className="block">
         <span className="mb-2 block text-sm font-bold">

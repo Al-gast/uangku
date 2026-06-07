@@ -33,6 +33,9 @@ export type CashflowTransactionItem = {
   source: Extract<TransactionSource, "manual" | "chat">;
   type: ManualTransactionType;
   amount: number;
+  adminFeeAmount: number;
+  adminFeeCategoryId: string | null;
+  adminFeeCategoryName: string | null;
   transactionDate: string;
   merchant: string | null;
   notes: string | null;

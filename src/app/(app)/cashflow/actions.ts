@@ -41,6 +41,10 @@ function rpcErrorMessage(code?: string, message?: string) {
     return "Nilai aset tidak cukup untuk transaksi ini.";
   }
 
+  if (message?.includes("Admin fee cannot exceed")) {
+    return "Biaya admin tidak boleh lebih besar dari nominal jual.";
+  }
+
   return initialError;
 }
 
@@ -59,7 +63,7 @@ export async function createTransaction(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("create_manual_transaction", {
+  const { error } = await supabase.rpc("create_manual_transaction_with_fee", {
     p_type: input.type,
     p_amount: input.amount,
     p_account_id: input.accountId,
@@ -69,6 +73,7 @@ export async function createTransaction(
     p_merchant: input.merchant,
     p_notes: input.notes,
     p_asset_id: input.assetId,
+    p_admin_fee_amount: input.adminFeeAmount,
   });
 
   if (error) {
@@ -105,7 +110,7 @@ export async function updateTransaction(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("update_manual_transaction", {
+  const { error } = await supabase.rpc("update_manual_transaction_with_fee", {
     p_transaction_id: transactionId,
     p_type: input.type,
     p_amount: input.amount,
@@ -116,6 +121,7 @@ export async function updateTransaction(
     p_merchant: input.merchant,
     p_notes: input.notes,
     p_asset_id: input.assetId,
+    p_admin_fee_amount: input.adminFeeAmount,
   });
 
   if (error) {
@@ -141,7 +147,7 @@ export async function deleteTransaction(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("delete_manual_transaction", {
+  const { error } = await supabase.rpc("delete_manual_transaction_with_fee", {
     p_transaction_id: transactionId,
   });
 
