@@ -1,6 +1,18 @@
 import type { AccountType } from "@/types/account";
+import type { PortfolioAssetType } from "@/lib/portfolio/types";
 
-export type ChatTransactionType = "income" | "expense" | "transfer";
+export type ChatTransactionType =
+  | "income"
+  | "expense"
+  | "transfer"
+  | "investment_buy"
+  | "investment_sell";
+
+export type ChatCategoryType =
+  | "income"
+  | "expense"
+  | "transfer"
+  | "investment";
 
 export type ChatAccount = {
   id: string;
@@ -12,7 +24,14 @@ export type ChatAccount = {
 export type ChatCategory = {
   id: string;
   name: string;
-  transactionType: ChatTransactionType;
+  transactionType: ChatCategoryType;
+};
+
+export type ChatAsset = {
+  id: string;
+  name: string;
+  type: PortfolioAssetType;
+  currentValue: number;
 };
 
 export type ChatTransactionDraft = {
@@ -21,6 +40,7 @@ export type ChatTransactionDraft = {
   categoryId: string;
   accountId: string;
   transferToAccountId: string | null;
+  assetId: string | null;
   transactionDate: string;
   confidence: number;
 };
@@ -33,6 +53,7 @@ export type ChatParseFailureReason =
   | "amount_too_large"
   | "unknown_category"
   | "account_not_found"
+  | "asset_not_found"
   | "transfer_accounts_missing"
   | "same_transfer_account"
   | "unsupported";

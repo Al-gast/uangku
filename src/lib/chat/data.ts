@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { ChatAccount, ChatCategory } from "@/lib/chat/types";
+import type { ChatAccount, ChatAsset, ChatCategory } from "@/lib/chat/types";
 import { createClient } from "@/lib/supabase/server";
 
 export async function getChatOptions() {
@@ -12,6 +12,7 @@ export async function getChatOptions() {
   if (categorySetupError) {
     return {
       accounts: [] as ChatAccount[],
+      assets: [] as ChatAsset[],
       categories: [] as ChatCategory[],
       setupError:
         categorySetupError.code === "PGRST202" ||
@@ -21,8 +22,11 @@ export async function getChatOptions() {
     };
   }
 
-  const [{ data: accountRows, error: accountError }, { data: categoryRows, error: categoryError }] =
-    await Promise.all([
+  const [
+    { data: accountRows, error: accountError },
+    { data: assetRows, error: assetError },
+    { data: categoryRows, error: categoryError },
+  ] = await Promise.all([
       supabase
         .from("accounts")
         .select("id,name,type,current_balance")
@@ -30,16 +34,22 @@ export async function getChatOptions() {
         .in("type", ["cash", "bank_account", "e_wallet"])
         .order("created_at"),
       supabase
+        .from("assets")
+        .select("id,name,type,current_value")
+        .in("type", ["rdpu", "rdpt", "gold", "crypto", "stock", "other_asset"])
+        .order("created_at"),
+      supabase
         .from("categories")
         .select("id,name,transaction_type")
-        .in("transaction_type", ["income", "expense", "transfer"])
+        .in("transaction_type", ["income", "expense", "transfer", "investment"])
         .eq("is_active", true)
         .order("name"),
     ]);
 
-  if (accountError || categoryError) {
+  if (accountError || assetError || categoryError) {
     return {
       accounts: [] as ChatAccount[],
+      assets: [] as ChatAsset[],
       categories: [] as ChatCategory[],
       setupError: "Data akun dan kategori belum bisa dimuat.",
     };
@@ -51,6 +61,12 @@ export async function getChatOptions() {
       name: account.name,
       type: account.type as ChatAccount["type"],
       currentBalance: Number(account.current_balance),
+    })),
+    assets: (assetRows ?? []).map((asset) => ({
+      id: asset.id,
+      name: asset.name,
+      type: asset.type as ChatAsset["type"],
+      currentValue: Number(asset.current_value),
     })),
     categories: (categoryRows ?? []).map((category) => ({
       id: category.id,

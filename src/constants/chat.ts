@@ -71,10 +71,12 @@ export const CHAT_TEMPLATE_GROUPS: ChatTemplateGroup[] = [
     label: "Investasi",
     icon: "📈",
     templates: [
-      { label: "Top up RDPU", value: "", disabled: true },
-      { label: "Top up RDPT", value: "", disabled: true },
-      { label: "Beli emas", value: "", disabled: true },
-      { label: "Beli BTC", value: "", disabled: true },
+      { label: "Top up RDPU", value: "top up RDPU " },
+      { label: "Top up RDPT", value: "top up RDPT " },
+      { label: "Beli emas", value: "beli emas " },
+      { label: "Beli BTC", value: "beli BTC " },
+      { label: "Jual BTC", value: "jual BTC " },
+      { label: "Withdraw RDPU", value: "withdraw RDPU " },
     ],
   },
 ];

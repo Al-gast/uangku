@@ -10,6 +10,7 @@ import { TypingIndicator } from "@/components/chat/typing-indicator";
 import { parseChatTransaction } from "@/lib/chat/parser";
 import type {
   ChatAccount,
+  ChatAsset,
   ChatCategory,
   ChatMessage,
   ChatParseFailureReason,
@@ -28,6 +29,8 @@ const failureMessages: Record<ChatParseFailureReason, string> = {
     "Aku belum kenal kategori ini. Coba pilih template atau isi manual ya.",
   account_not_found:
     "Aku belum menemukan akun aktif. Tambahkan akun dulu atau isi manual ya.",
+  asset_not_found:
+    "Aku belum menemukan aset investasi itu. Tambahkan aset di Portfolio dulu ya.",
   transfer_accounts_missing:
     'Sebutkan akun asal dan tujuan, contoh: "transfer dari BCA ke GoPay 100rb"',
   same_transfer_account: "Akun asal dan tujuan transfer harus berbeda ya.",
@@ -49,10 +52,12 @@ function message(
 
 export function ChatView({
   accounts,
+  assets,
   categories,
   setupError,
 }: {
   accounts: ChatAccount[];
+  assets: ChatAsset[];
   categories: ChatCategory[];
   setupError: string | null;
 }) {
@@ -85,7 +90,12 @@ export function ChatView({
     setIsParsing(true);
 
     window.setTimeout(() => {
-      const result = parseChatTransaction(rawText, categories, accounts);
+      const result = parseChatTransaction(
+        rawText,
+        categories,
+        accounts,
+        assets,
+      );
       setIsParsing(false);
 
       if (result.success) {
@@ -186,6 +196,7 @@ export function ChatView({
             <TransactionPreview
               draft={preview}
               accounts={accounts}
+              assets={assets}
               categories={categories}
               isSaving={isSaving}
               error={previewError}

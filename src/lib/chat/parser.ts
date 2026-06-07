@@ -1,5 +1,6 @@
 import type {
   ChatAccount,
+  ChatAsset,
   ChatCategory,
   ChatParseFailureReason,
   ChatParseResult,
@@ -9,6 +10,23 @@ import type {
 const MAX_AMOUNT = 999_000_000_000_000;
 const LIQUID_ACCOUNT_TYPES = new Set(["cash", "bank_account", "e_wallet"]);
 const INCOME_KEYWORDS = ["gaji", "bonus", "freelance"];
+const INVESTMENT_BUY_KEYWORDS = ["top up", "topup", "beli"];
+const INVESTMENT_SELL_KEYWORDS = ["jual", "withdraw", "tarik"];
+const INVESTMENT_SIGNAL_WORDS = [
+  "investasi",
+  "reksadana",
+  "reksa dana",
+  "rdpu",
+  "rdpt",
+  "btc",
+  "bitcoin",
+  "emas",
+  "gold",
+  "saham",
+  "stock",
+  "crypto",
+  "kripto",
+];
 const FILLER_WORDS = new Set([
   "bayar",
   "beli",
@@ -117,6 +135,48 @@ function sortedAccountMatches(input: string, accounts: ChatAccount[]) {
     });
 }
 
+function assetAliases(asset: ChatAsset[]) {
+  return asset.flatMap((item) => {
+    const aliases = [item.name];
+
+    if (item.type === "rdpu") {
+      aliases.push("RDPU", "reksadana pasar uang", "reksa dana pasar uang");
+    }
+
+    if (item.type === "rdpt") {
+      aliases.push("RDPT", "reksadana pendapatan tetap", "reksa dana pendapatan tetap");
+    }
+
+    if (item.type === "gold") {
+      aliases.push("emas", "gold");
+    }
+
+    if (item.type === "crypto") {
+      aliases.push("BTC", "Bitcoin", "crypto", "kripto");
+    }
+
+    if (item.type === "stock") {
+      aliases.push("saham", "stock");
+    }
+
+    return aliases.map((alias) => ({
+      asset: item,
+      alias: normalize(alias),
+    }));
+  });
+}
+
+function matchAsset(input: string, assets: ChatAsset[]) {
+  return (
+    assetAliases(assets)
+      .filter(({ alias }) => alias && input.includes(alias))
+      .sort((a, b) => {
+        const positionDifference = input.indexOf(a.alias) - input.indexOf(b.alias);
+        return positionDifference || b.alias.length - a.alias.length;
+      })[0]?.asset ?? null
+  );
+}
+
 function findAccountAfterCue(
   input: string,
   cue: string,
@@ -143,7 +203,7 @@ function findAccountAfterCue(
 function matchCategory(
   input: string,
   categories: ChatCategory[],
-  transactionType?: ChatTransactionType,
+  transactionType?: ChatCategory["transactionType"],
 ) {
   const candidates = categories
     .filter(
@@ -193,6 +253,17 @@ function isTransferInput(input: string) {
   return /\btransfer\b/.test(input) || /\bisi\b/.test(input);
 }
 
+function hasKeyword(input: string, keywords: string[]) {
+  return keywords.some((keyword) => {
+    const normalizedKeyword = normalize(keyword);
+    return new RegExp(`(^|\\s)${normalizedKeyword}(\\s|$)`).test(input);
+  });
+}
+
+function hasInvestmentSignal(input: string) {
+  return INVESTMENT_SIGNAL_WORDS.some((word) => input.includes(normalize(word)));
+}
+
 function defaultAccount(accounts: ChatAccount[]) {
   return (
     accounts.find((account) => LIQUID_ACCOUNT_TYPES.has(account.type)) ?? null
@@ -229,6 +300,7 @@ export function parseChatTransaction(
   rawText: string,
   categories: ChatCategory[],
   accounts: ChatAccount[],
+  assets: ChatAsset[] = [],
   now = new Date(),
 ): ChatParseResult {
   const input = normalize(rawText);
@@ -261,6 +333,61 @@ export function parseChatTransaction(
 
   const transactionDate = dateForInput(input, now);
   const fallbackAccount = defaultAccount(accounts);
+  const matchedAsset = matchAsset(input, assets);
+  const isSellIntent = hasKeyword(input, INVESTMENT_SELL_KEYWORDS);
+  const hasBuyKeyword = hasKeyword(input, INVESTMENT_BUY_KEYWORDS);
+  const isBuyIntent =
+    hasKeyword(input, ["top up", "topup"]) ||
+    (hasBuyKeyword && (matchedAsset || hasInvestmentSignal(input)));
+  const isInvestmentInput = isBuyIntent || isSellIntent;
+
+  if (isInvestmentInput) {
+    const investmentCategory =
+      categories.find(
+        (category) => category.transactionType === "investment",
+      ) ?? null;
+
+    if (!matchedAsset) {
+      return fail("asset_not_found", [
+        "top up RDPU 500rb dari BCA",
+        "beli BTC 250rb dari Jago",
+      ]);
+    }
+
+    if (!investmentCategory) {
+      return fail("unknown_category", ["Gunakan kategori Investasi."]);
+    }
+
+    const account =
+      isSellIntent
+        ? findAccountAfterCue(input, "ke ", accounts) ??
+          findAccountAfterCue(input, "masuk ", accounts) ??
+          sortedAccountMatches(input, accounts)[0]?.account ??
+          fallbackAccount
+        : findAccountAfterCue(input, "dari ", accounts) ??
+          sortedAccountMatches(input, accounts)[0]?.account ??
+          fallbackAccount;
+
+    if (!account) {
+      return fail("account_not_found", [
+        "Tambahkan akun tunai, bank, atau e-wallet terlebih dahulu.",
+      ]);
+    }
+
+    return {
+      success: true,
+      draft: {
+        type: isSellIntent ? "investment_sell" : "investment_buy",
+        amount: amountMatch.amount,
+        categoryId: investmentCategory.id,
+        accountId: account.id,
+        transferToAccountId: null,
+        assetId: matchedAsset.id,
+        transactionDate,
+        confidence: 0.93,
+      },
+    };
+  }
 
   if (isTransferInput(input)) {
     const transferCategory =
@@ -295,6 +422,7 @@ export function parseChatTransaction(
         categoryId: transferCategory.id,
         accountId: source.id,
         transferToAccountId: destination.id,
+        assetId: null,
         transactionDate,
         confidence: 0.98,
       },
@@ -346,6 +474,7 @@ export function parseChatTransaction(
       categoryId: typedCategory.id,
       accountId: account.id,
       transferToAccountId: null,
+      assetId: null,
       transactionDate,
       confidence: mentionedAccount ? 0.96 : 0.88,
     },

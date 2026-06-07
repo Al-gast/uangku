@@ -12,6 +12,8 @@ const SUPPORTED_TYPES = new Set<ChatTransactionType>([
   "income",
   "expense",
   "transfer",
+  "investment_buy",
+  "investment_sell",
 ]);
 const MAX_AMOUNT = 999_000_000_000_000;
 const UUID_PATTERN =
@@ -27,7 +29,19 @@ function confirmationMessage(type: ChatTransactionType) {
     return "Oke, pengeluaran sudah dicatat ✓";
   }
 
+  if (type === "investment_buy") {
+    return "Oke, top up investasi sudah dicatat ✓";
+  }
+
+  if (type === "investment_sell") {
+    return "Oke, tarik investasi sudah dicatat ✓";
+  }
+
   return "Oke, transfer sudah dicatat ✓";
+}
+
+function isInvestmentType(type: ChatTransactionType) {
+  return type === "investment_buy" || type === "investment_sell";
 }
 
 function isValidUuid(value: string | null) {
@@ -67,6 +81,14 @@ function validateDraft(draft: ChatTransactionDraft) {
     return "Akun tujuan hanya digunakan untuk transfer.";
   }
 
+  if (isInvestmentType(draft.type) && !isValidUuid(draft.assetId)) {
+    return "Pilih aset investasi.";
+  }
+
+  if (!isInvestmentType(draft.type) && draft.assetId) {
+    return "Aset hanya digunakan untuk transaksi investasi.";
+  }
+
   return null;
 }
 
@@ -87,6 +109,7 @@ export async function saveChatTransaction(
     p_category_id: draft.categoryId,
     p_transaction_date: draft.transactionDate,
     p_transfer_to_account_id: draft.transferToAccountId,
+    p_asset_id: draft.assetId,
   });
 
   if (error) {
@@ -95,6 +118,9 @@ export async function saveChatTransaction(
       error:
         error.code === "PGRST202" || error.code === "42883"
           ? "Migration Chat Input belum diterapkan di Supabase."
+          : error.code === "23514" ||
+              error.message.includes("Asset value cannot be negative")
+            ? "Nilai aset tidak cukup untuk transaksi ini."
           : "Transaksi belum berhasil disimpan. Periksa preview lalu coba lagi.",
     };
   }
@@ -102,6 +128,7 @@ export async function saveChatTransaction(
   revalidatePath("/dashboard");
   revalidatePath("/cashflow");
   revalidatePath("/chat");
+  revalidatePath("/portfolio");
   revalidatePath("/settings/budgets");
 
   return {
