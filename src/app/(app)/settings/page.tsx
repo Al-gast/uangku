@@ -25,6 +25,11 @@ export default function SettingsPage() {
       title: "Privacy & Security",
       description: "Sembunyikan nominal saat berada di tempat umum.",
     },
+    {
+      href: "/settings/export",
+      title: "Export Data",
+      description: "Download data UangKu untuk backup pribadi.",
+    },
   ];
 
   return (
@@ -52,6 +57,14 @@ export default function SettingsPage() {
           </Link>
         ))}
       </div>
+      <section className="mt-4 rounded-card border border-accent/25 bg-accent-soft p-5">
+        <p className="text-sm font-bold text-accent-strong">
+          Bisa dipasang ke Home Screen sebagai PWA.
+        </p>
+        <p className="mt-1 text-xs leading-5 text-muted">
+          Gunakan menu browser dan pilih Add to Home Screen atau Install App.
+        </p>
+      </section>
       <LogoutButton />
     </>
   );
