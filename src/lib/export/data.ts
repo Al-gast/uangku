@@ -67,7 +67,7 @@ export async function getExportData(): Promise<ExportBundle> {
     supabase
       .from("assets")
       .select(
-        "id,account_id,name,type,platform,currency,quantity,unit,total_cost,current_value,notes,created_at,updated_at",
+        "id,account_id,name,type,platform,currency,quantity,unit,last_price,total_cost,current_value,notes,created_at,updated_at",
       )
       .eq("user_id", userId)
       .order("created_at"),
@@ -221,8 +221,9 @@ export async function getExportData(): Promise<ExportBundle> {
       "Akun Terkait",
       "Platform",
       "Mata Uang",
-      "Kuantitas",
-      "Unit",
+      "Jumlah Unit",
+      "Satuan",
+      "Harga per Unit",
       "Total Modal",
       "Nilai Saat Ini",
       "Catatan",
@@ -238,8 +239,11 @@ export async function getExportData(): Promise<ExportBundle> {
         : "",
       Platform: asset.platform ?? "",
       "Mata Uang": asset.currency,
-      Kuantitas: asset.quantity === null ? null : Number(asset.quantity),
-      Unit: asset.unit ?? "",
+      "Jumlah Unit":
+        asset.quantity === null ? null : Number(asset.quantity),
+      Satuan: asset.unit ?? "",
+      "Harga per Unit":
+        asset.last_price === null ? null : Number(asset.last_price),
       "Total Modal":
         asset.total_cost === null ? null : Number(asset.total_cost),
       "Nilai Saat Ini": Number(asset.current_value),

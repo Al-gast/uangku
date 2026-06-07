@@ -24,6 +24,27 @@ const groups: Array<{
   { key: "other", label: "📦 Aset Lain", types: ["other_asset"] },
 ];
 
+function formatQuantity(value: number) {
+  return new Intl.NumberFormat("id-ID", {
+    maximumFractionDigits: 8,
+  }).format(value);
+}
+
+function getAssetSubtitle(
+  asset: PortfolioAssetItem,
+  fallbackLabel: string,
+) {
+  if (asset.quantity === null) {
+    return asset.platform || fallbackLabel;
+  }
+
+  const quantity = `${formatQuantity(asset.quantity)}${
+    asset.unit ? ` ${asset.unit}` : ""
+  }`;
+
+  return asset.platform ? `${quantity} · ${asset.platform}` : quantity;
+}
+
 function GroupCard({
   label,
   children,
@@ -100,30 +121,34 @@ export function AssetList({
 
           return (
             <GroupCard key={group.key} label={group.label}>
-              {items.map((asset) => (
-                <Link
-                  key={asset.id}
-                  href={`/portfolio/asset/${asset.id}`}
-                  className="flex items-center justify-between gap-4 border-t border-border px-5 py-4 transition hover:bg-surface-muted active:scale-[0.99]"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">
-                      {asset.name}
-                    </p>
-                    <p className="mt-1 truncate text-xs text-muted">
-                      {asset.platform || group.label.replace(/^[^\s]+\s/, "")}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <MoneyText
-                      as="p"
-                      value={asset.currentValue}
-                      className="text-sm font-bold"
-                    />
-                    <span className="text-sm text-muted">›</span>
-                  </div>
-                </Link>
-              ))}
+              {items.map((asset) => {
+                const fallbackLabel = group.label.replace(/^[^\s]+\s/, "");
+
+                return (
+                  <Link
+                    key={asset.id}
+                    href={`/portfolio/asset/${asset.id}`}
+                    className="flex items-center justify-between gap-4 border-t border-border px-5 py-4 transition hover:bg-surface-muted active:scale-[0.99]"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">
+                        {asset.name}
+                      </p>
+                      <p className="mt-1 truncate text-xs text-muted">
+                        {getAssetSubtitle(asset, fallbackLabel)}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <MoneyText
+                        as="p"
+                        value={asset.currentValue}
+                        className="text-sm font-bold"
+                      />
+                      <span className="text-sm text-muted">›</span>
+                    </div>
+                  </Link>
+                );
+              })}
             </GroupCard>
           );
         })}

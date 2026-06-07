@@ -11,6 +11,7 @@ export type AssetInput = {
   platform: string | null;
   quantity: number | null;
   unit: string | null;
+  unitPrice: number | null;
   totalCost: number | null;
   currentValue: number;
   notes: string | null;
@@ -115,12 +116,20 @@ export function parseAssetForm(formData: FormData): AssetInput {
     allowZero: true,
   });
   const quantity = parseQuantity(formData.get("quantity"));
+  const unit = optionalText(formData.get("unit"), 20);
+  const unitPrice = parseNumber(formData.get("unit_price"), {
+    required: false,
+    allowZero: true,
+  });
 
   if (
     (totalCost !== null && Number.isNaN(totalCost)) ||
-    (quantity !== null && Number.isNaN(quantity))
+    (quantity !== null && Number.isNaN(quantity)) ||
+    (unitPrice !== null && Number.isNaN(unitPrice))
   ) {
-    throw new Error("Jumlah atau modal aset belum valid.");
+    throw new Error(
+      "Jumlah unit, harga per unit, atau modal aset belum valid.",
+    );
   }
 
   return {
@@ -128,7 +137,8 @@ export function parseAssetForm(formData: FormData): AssetInput {
     type,
     platform: optionalText(formData.get("platform"), 120),
     quantity,
-    unit: type === "gold" && quantity !== null ? "gram" : null,
+    unit,
+    unitPrice,
     totalCost,
     currentValue,
     notes: optionalText(formData.get("notes"), 1000),

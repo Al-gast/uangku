@@ -54,6 +54,9 @@ export async function createAsset(
       currency: "IDR",
       quantity: input.quantity,
       unit: input.unit,
+      last_price: input.unitPrice,
+      last_price_updated_at:
+        input.unitPrice === null ? null : new Date().toISOString(),
       total_cost: input.totalCost,
       current_value: input.currentValue,
       auto_price_enabled: false,
@@ -111,6 +114,9 @@ export async function updateAsset(
         platform: input.platform,
         quantity: input.quantity,
         unit: input.unit,
+        last_price: input.unitPrice,
+        last_price_updated_at:
+          input.unitPrice === null ? null : new Date().toISOString(),
         total_cost: input.totalCost,
         current_value: input.currentValue,
         notes: input.notes,
