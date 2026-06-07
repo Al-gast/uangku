@@ -6,6 +6,7 @@ import {
   completeOnboarding,
   type OnboardingActionState,
 } from "@/app/onboarding/actions";
+import { ThemedSelect } from "@/components/ui/themed-select";
 import {
   accountPresets,
   accountTypeOptions,
@@ -311,26 +312,20 @@ export function OnboardingForm() {
                     className="min-h-12 w-full rounded-control border border-border bg-background px-4 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
                   />
                 </label>
-                <label className="mt-3 block">
-                  <span className="mb-2 block text-xs font-bold text-muted">
-                    Jenis akun
-                  </span>
-                  <select
+                <div className="mt-3">
+                  <ThemedSelect
+                    label={
+                      <span className="text-xs text-muted">Jenis akun</span>
+                    }
                     value={account.type}
-                    onChange={(event) =>
+                    onChange={(type) =>
                       updateAccount(account.id, {
-                        type: event.target.value as AccountType,
+                        type: type as AccountType,
                       })
                     }
-                    className="min-h-12 w-full rounded-control border border-border bg-background px-4 outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
-                  >
-                    {accountTypeOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    options={accountTypeOptions}
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -392,28 +387,49 @@ export function OnboardingForm() {
                 key={category}
                 className="rounded-card border border-border bg-surface p-4 shadow-card"
               >
-                <label className="flex items-center justify-between gap-4">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setBudgets((current) => ({
+                      ...current,
+                      [category]: {
+                        ...current[category],
+                        enabled: !current[category].enabled,
+                      },
+                    }))
+                  }
+                  aria-pressed={budget.enabled}
+                  className={`flex min-h-14 w-full items-center justify-between gap-4 rounded-control border p-3 text-left transition active:scale-[0.99] ${
+                    budget.enabled
+                      ? "border-accent bg-accent-soft text-accent-strong"
+                      : "border-border bg-background text-foreground"
+                  }`}
+                >
                   <span>
                     <span className="block font-bold">{category}</span>
-                    <span className="mt-1 block text-xs text-muted">
+                    <span
+                      className={`mt-1 block text-xs ${
+                        budget.enabled ? "text-accent-strong" : "text-muted"
+                      }`}
+                    >
                       per bulan
                     </span>
                   </span>
-                  <input
-                    type="checkbox"
-                    checked={budget.enabled}
-                    onChange={(event) =>
-                      setBudgets((current) => ({
-                        ...current,
-                        [category]: {
-                          ...current[category],
-                          enabled: event.target.checked,
-                        },
-                      }))
-                    }
-                    className="size-5 accent-[var(--accent)]"
-                  />
-                </label>
+                  <span
+                    aria-hidden="true"
+                    className={`relative h-7 w-12 shrink-0 rounded-full border transition ${
+                      budget.enabled
+                        ? "border-accent bg-accent"
+                        : "border-border bg-surface-muted"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-1 size-5 rounded-full bg-white shadow-sm transition ${
+                        budget.enabled ? "left-6" : "left-1"
+                      }`}
+                    />
+                  </span>
+                </button>
                 {budget.enabled && (
                   <div className="mt-3 flex min-h-12 items-center rounded-control border border-border bg-background px-4 focus-within:border-accent focus-within:ring-4 focus-within:ring-accent-soft">
                     <span className="mr-2 text-sm font-bold text-muted">Rp</span>
