@@ -19,10 +19,8 @@ export default async function EditTransactionPage({
   params,
 }: EditTransactionPageProps) {
   const { id } = await params;
-  const [transaction, options] = await Promise.all([
-    getCashflowTransaction(id),
-    getCashflowFormOptions(),
-  ]);
+  const transaction = await getCashflowTransaction(id);
+  const options = await getCashflowFormOptions(transaction.categoryId);
 
   return (
     <>

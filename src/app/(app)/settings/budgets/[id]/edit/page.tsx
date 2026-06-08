@@ -18,10 +18,8 @@ export default async function EditBudgetPage({
   params,
 }: EditBudgetPageProps) {
   const { id } = await params;
-  const [budget, options] = await Promise.all([
-    getBudget(id),
-    getBudgetCategoryOptions(),
-  ]);
+  const budget = await getBudget(id);
+  const options = await getBudgetCategoryOptions(budget.categoryId);
 
   return (
     <>

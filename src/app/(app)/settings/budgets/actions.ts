@@ -25,14 +25,17 @@ async function getAuthenticatedContext() {
 async function validateExpenseCategory(
   supabase: Awaited<ReturnType<typeof createClient>>,
   categoryId: string,
+  allowInactive = false,
 ) {
-  const { data } = await supabase
+  let query = supabase
     .from("categories")
     .select("id")
     .eq("id", categoryId)
-    .eq("transaction_type", "expense")
-    .eq("is_active", true)
-    .maybeSingle();
+    .eq("transaction_type", "expense");
+
+  query = allowInactive ? query : query.eq("is_active", true);
+
+  const { data } = await query.maybeSingle();
 
   if (!data) {
     throw new Error("Kategori expense tidak ditemukan.");
@@ -126,8 +129,27 @@ export async function updateBudget(
 
   try {
     const input = parseBudgetForm(formData);
-    const { supabase } = await getAuthenticatedContext();
-    await validateExpenseCategory(supabase, input.categoryId);
+    const { supabase, userId } = await getAuthenticatedContext();
+    const { data: currentBudget, error: currentBudgetError } = await supabase
+      .from("budgets")
+      .select("id,category_id")
+      .eq("id", budgetId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (currentBudgetError) {
+      throw new Error("Budget belum berhasil diperiksa.");
+    }
+
+    if (!currentBudget) {
+      throw new Error("Budget tidak ditemukan.");
+    }
+
+    await validateExpenseCategory(
+      supabase,
+      input.categoryId,
+      input.categoryId === currentBudget.category_id,
+    );
 
     if (await hasOverlappingBudget(supabase, input.categoryId, budgetId)) {
       throw new Error(

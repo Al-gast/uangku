@@ -21,6 +21,11 @@ export default function SettingsPage() {
       description: "Atur batas pengeluaran bulanan.",
     },
     {
+      href: "/settings/categories",
+      title: "Kategori",
+      description: "Kelola kategori pemasukan dan pengeluaran.",
+    },
+    {
       href: "/insights",
       title: "Rekap & Insight",
       description: "Lihat ringkasan dan rekomendasi bulanan.",

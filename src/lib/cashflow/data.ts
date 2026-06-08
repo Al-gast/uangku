@@ -140,7 +140,7 @@ export async function ensureManualCashflowCategories() {
   return { supabase, error: error ?? adminFeeError };
 }
 
-export async function getCashflowFormOptions() {
+export async function getCashflowFormOptions(includeCategoryId?: string) {
   const supabase = await createClient();
   const [
     setupResult,
@@ -184,7 +184,7 @@ export async function getCashflowFormOptions() {
     };
   }
 
-  const { data: categoryRows } = await supabase
+  let categoryQuery = supabase
     .from("categories")
     .select("id,name,transaction_type")
     .in("transaction_type", [
@@ -194,8 +194,13 @@ export async function getCashflowFormOptions() {
       "investment",
       "debt",
     ])
-    .eq("is_active", true)
     .order("name");
+
+  categoryQuery = includeCategoryId
+    ? categoryQuery.or(`is_active.eq.true,id.eq.${includeCategoryId}`)
+    : categoryQuery.eq("is_active", true);
+
+  const { data: categoryRows } = await categoryQuery;
   const accountRows = accountResult.data;
   const assetRows = assetResult.data;
   const liabilityRows = liabilityResult.data;

@@ -40,7 +40,7 @@ export async function ensureBudgetCategories() {
   return { supabase, error: error ?? adminFeeError };
 }
 
-export async function getBudgetCategoryOptions() {
+export async function getBudgetCategoryOptions(includeCategoryId?: string) {
   const { supabase, error: setupError } = await ensureBudgetCategories();
 
   if (setupError) {
@@ -53,12 +53,17 @@ export async function getBudgetCategoryOptions() {
     };
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("categories")
     .select("id,name")
     .eq("transaction_type", "expense")
-    .eq("is_active", true)
     .order("name");
+
+  query = includeCategoryId
+    ? query.or(`is_active.eq.true,id.eq.${includeCategoryId}`)
+    : query.eq("is_active", true);
+
+  const { data, error } = await query;
 
   return {
     categories: (data ?? []) as BudgetCategoryOption[],
