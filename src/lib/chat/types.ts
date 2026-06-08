@@ -51,6 +51,8 @@ export type ChatTransactionDraft = {
   transferToAccountId: string | null;
   assetId: string | null;
   liabilityId: string | null;
+  merchant: string | null;
+  notes: string | null;
   transactionDate: string;
   confidence: number;
 };

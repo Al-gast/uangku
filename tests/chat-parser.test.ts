@@ -38,8 +38,10 @@ const accounts: ChatAccount[] = [
 
 const categories: ChatCategory[] = [
   { id: "category-makan", name: "Makan", transactionType: "expense" },
+  { id: "category-jajan", name: "Jajan", transactionType: "expense" },
   { id: "category-kopi", name: "Kopi", transactionType: "expense" },
   { id: "category-listrik", name: "Listrik", transactionType: "expense" },
+  { id: "category-transport", name: "Transport", transactionType: "expense" },
   { id: "category-gaji", name: "Gaji", transactionType: "income" },
   { id: "category-freelance", name: "Freelance", transactionType: "income" },
   { id: "category-transfer", name: "Transfer", transactionType: "transfer" },
@@ -90,6 +92,7 @@ type ExpectedDraft = {
   transferToAccountId?: string | null;
   assetId?: string | null;
   liabilityId?: string | null;
+  merchant?: string | null;
 };
 
 function parse(text: string) {
@@ -157,6 +160,10 @@ function expectDraft(text: string, expected: ExpectedDraft) {
       `${text} liability`,
     );
   }
+
+  if (expected.merchant !== undefined) {
+    assert.equal(result.draft.merchant, expected.merchant, `${text} merchant`);
+  }
 }
 
 function expectFailure(text: string, reason: string) {
@@ -183,6 +190,38 @@ function runParserRegressionTests() {
     categoryId: "category-makan",
     accountId: "account-bca",
     assetId: null,
+    merchant: null,
+  });
+  expectDraft("makan ayam goreng 20k", {
+    type: "expense",
+    amount: 20_000,
+    categoryId: "category-makan",
+    merchant: "ayam goreng",
+  });
+  expectDraft("jajan cilok 5k", {
+    type: "expense",
+    amount: 5_000,
+    categoryId: "category-jajan",
+    merchant: "cilok",
+  });
+  expectDraft("transport parkir 2k", {
+    type: "expense",
+    amount: 2_000,
+    categoryId: "category-transport",
+    merchant: "parkir",
+  });
+  expectDraft("transport ganti oli 60k", {
+    type: "expense",
+    amount: 60_000,
+    categoryId: "category-transport",
+    merchant: "ganti oli",
+  });
+  expectDraft("makan ayam goreng 20k dari BCA", {
+    type: "expense",
+    amount: 20_000,
+    categoryId: "category-makan",
+    accountId: "account-bca",
+    merchant: "ayam goreng",
   });
   expectDraft("kopi 18rb dari GoPay", {
     type: "expense",
@@ -205,6 +244,14 @@ function runParserRegressionTests() {
     type: "income",
     amount: 4_700_000,
     categoryId: "category-gaji",
+    merchant: null,
+  });
+  expectDraft("gaji kantor 4.7jt masuk BCA", {
+    type: "income",
+    amount: 4_700_000,
+    categoryId: "category-gaji",
+    accountId: "account-bca",
+    merchant: "kantor",
   });
   expectDraft("freelance 800rb masuk BCA", {
     type: "income",
@@ -219,6 +266,7 @@ function runParserRegressionTests() {
     adminFeeAmount: 0,
     accountId: "account-bca",
     transferToAccountId: "account-gopay",
+    merchant: null,
   });
   expectDraft("transfer BCA ke GoPay 100rb", {
     type: "transfer",
@@ -279,6 +327,7 @@ function runParserRegressionTests() {
     amount: 500_000,
     accountId: "account-bca",
     assetId: "asset-rdpu",
+    merchant: null,
   });
   expectDraft("top up RDPU 500rb dari BCA admin 2500", {
     type: "investment_buy",

@@ -58,6 +58,10 @@ type AdminFeeMatch = AmountMatch & {
   clause: string;
 };
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function normalize(value: string) {
   return value
     .toLocaleLowerCase("id-ID")
@@ -347,6 +351,61 @@ function resolveTransferAccounts(input: string, accounts: ChatAccount[]) {
   };
 }
 
+function extractSimpleDetail({
+  input,
+  amountRaw,
+  category,
+  accounts,
+}: {
+  input: string;
+  amountRaw: string;
+  category: ChatCategory;
+  accounts: ChatAccount[];
+}) {
+  let detail = ` ${input} `;
+  const categoryName = normalize(category.name);
+  const amountPattern = escapeRegExp(normalize(amountRaw));
+
+  detail = detail.replace(
+    new RegExp(`(^|\\s)${escapeRegExp(categoryName)}(?=\\s|$)`, "iu"),
+    " ",
+  );
+  detail = detail.replace(
+    new RegExp(`(^|\\s)${amountPattern}(?=\\s|$)`, "iu"),
+    " ",
+  );
+
+  for (const account of accounts) {
+    const accountName = normalize(account.name);
+
+    if (!accountName) {
+      continue;
+    }
+
+    detail = detail.replace(
+      new RegExp(
+        `\\s(?:dari|masuk|pakai|pake)\\s+${escapeRegExp(accountName)}(?=\\s|$)`,
+        "giu",
+      ),
+      " ",
+    );
+    detail = detail.replace(
+      new RegExp(`(^|\\s)${escapeRegExp(accountName)}(?=\\s|$)`, "giu"),
+      " ",
+    );
+  }
+
+  detail = detail
+    .replace(/\b(hari ini|kemarin)\b/giu, " ")
+    .split(" ")
+    .filter((word) => word && !FILLER_WORDS.has(word))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return detail || null;
+}
+
 export function parseChatTransaction(
   rawText: string,
   categories: ChatCategory[],
@@ -448,6 +507,8 @@ export function parseChatTransaction(
         transferToAccountId: null,
         assetId: null,
         liabilityId: matchedLiability.id,
+        merchant: null,
+        notes: null,
         transactionDate,
         confidence: 0.91,
       },
@@ -504,6 +565,8 @@ export function parseChatTransaction(
         transferToAccountId: null,
         assetId: matchedAsset.id,
         liabilityId: null,
+        merchant: null,
+        notes: null,
         transactionDate,
         confidence: 0.93,
       },
@@ -546,6 +609,8 @@ export function parseChatTransaction(
         transferToAccountId: destination.id,
         assetId: null,
         liabilityId: null,
+        merchant: null,
+        notes: null,
         transactionDate,
         confidence: 0.98,
       },
@@ -606,6 +671,13 @@ export function parseChatTransaction(
       transferToAccountId: null,
       assetId: null,
       liabilityId: null,
+      merchant: extractSimpleDetail({
+        input: inputWithoutAdminFee,
+        amountRaw: amountMatch.raw,
+        category: typedCategory,
+        accounts,
+      }),
+      notes: null,
       transactionDate,
       confidence: mentionedAccount ? 0.96 : 0.88,
     },

@@ -102,6 +102,14 @@ function validateDraft(draft: ChatTransactionDraft) {
     return "Data preview belum lengkap.";
   }
 
+  if ((draft.merchant ?? "").trim().length > 120) {
+    return "Detail maksimal 120 karakter.";
+  }
+
+  if ((draft.notes ?? "").trim().length > 1000) {
+    return "Catatan maksimal 1000 karakter.";
+  }
+
   if (
     draft.type === "transfer" &&
     (!isValidUuid(draft.transferToAccountId) ||
@@ -153,6 +161,8 @@ export async function saveChatTransaction(
     p_asset_id: draft.assetId,
     p_admin_fee_amount: draft.adminFeeAmount,
     p_liability_id: draft.liabilityId,
+    p_merchant: draft.merchant,
+    p_notes: draft.notes,
   });
 
   if (error) {

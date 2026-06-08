@@ -61,6 +61,7 @@ export function TransactionPreview({
   const isInvestment =
     draft.type === "investment_buy" || draft.type === "investment_sell";
   const isDebtPayment = draft.type === "debt_payment";
+  const isSimpleCashflow = draft.type === "income" || draft.type === "expense";
   const supportsAdminFee =
     draft.type === "transfer" || isInvestment || isDebtPayment;
   const selectedAsset = assets.find((asset) => asset.id === draft.assetId);
@@ -132,6 +133,9 @@ export function TransactionPreview({
       liabilityId: nextIsDebtPayment
         ? (draft.liabilityId ?? liabilities[0]?.id ?? null)
         : null,
+      merchant:
+        type === "income" || type === "expense" ? draft.merchant : null,
+      notes: type === "income" || type === "expense" ? draft.notes : null,
     });
   }
 
@@ -216,6 +220,26 @@ export function TransactionPreview({
               label: category.name,
             }))}
           />
+        )}
+
+        {isSimpleCashflow && (
+          <label className="block">
+            <span className="mb-2 block text-xs font-bold text-muted">
+              Detail
+            </span>
+            <input
+              value={draft.merchant ?? ""}
+              maxLength={120}
+              placeholder="cth: ayam goreng, parkir, cilok"
+              onChange={(event) =>
+                onChange({
+                  ...draft,
+                  merchant: event.target.value.trimStart() || null,
+                })
+              }
+              className="min-h-12 w-full rounded-control border border-border bg-background px-4 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
+            />
+          </label>
         )}
 
         <ThemedSelect
