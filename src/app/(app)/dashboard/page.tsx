@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AccountSummary } from "@/components/dashboard/account-summary";
 import { BudgetSummary } from "@/components/dashboard/budget-summary";
 import { DashboardError } from "@/components/dashboard/dashboard-error";
@@ -58,6 +59,19 @@ export default async function DashboardPage() {
             income={data.monthlyIncome}
             expense={data.monthlyExpense}
           />
+
+          <Link
+            href="/insights"
+            className="block rounded-card border border-accent/25 bg-accent-soft p-5 shadow-card transition hover:border-accent/50 active:scale-[0.99]"
+          >
+            <p className="text-sm font-bold text-accent-strong">
+              Lihat Rekap Bulanan
+            </p>
+            <p className="mt-1 text-sm leading-6 text-muted">
+              Cek ringkasan, budget, investasi, hutang, dan rekomendasi bulan
+              ini.
+            </p>
+          </Link>
         </>
       )}
 

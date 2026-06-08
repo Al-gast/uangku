@@ -1,0 +1,87 @@
+"use client";
+
+import { usePrivacy } from "@/components/providers/privacy-provider";
+import type {
+  InsightRecommendation,
+  InsightSeverity,
+} from "@/lib/insights/types";
+
+export function RecommendationCard({
+  recommendations,
+}: {
+  recommendations: InsightRecommendation[];
+}) {
+  const { privacyEnabled } = usePrivacy();
+
+  return (
+    <section>
+      <div className="mb-3">
+        <h2 className="text-lg font-bold">Rekomendasi</h2>
+        <p className="mt-1 text-sm text-muted">
+          Saran singkat berbasis aturan dari data bulan ini.
+        </p>
+      </div>
+
+      {recommendations.length === 0 ? (
+        <div className="rounded-card border border-border bg-surface p-5 text-sm text-muted shadow-card">
+          Belum ada rekomendasi khusus bulan ini.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {recommendations.map((recommendation) => {
+            const tone = getSeverityTone(recommendation.severity);
+            const body =
+              privacyEnabled && recommendation.privacyBody
+                ? recommendation.privacyBody
+                : recommendation.body;
+
+            return (
+              <article
+                key={recommendation.id}
+                className={`rounded-card border p-5 shadow-card ${tone.card}`}
+              >
+                <p className={`text-xs font-bold uppercase ${tone.label}`}>
+                  {tone.labelText}
+                </p>
+                <h3 className="mt-2 font-bold">{recommendation.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted">{body}</p>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function getSeverityTone(severity: InsightSeverity) {
+  if (severity === "danger") {
+    return {
+      labelText: "Prioritas",
+      label: "text-expense",
+      card: "border-expense/30 bg-expense/10",
+    };
+  }
+
+  if (severity === "warning") {
+    return {
+      labelText: "Perhatian",
+      label: "text-expense/90",
+      card: "border-expense/20 bg-expense/5",
+    };
+  }
+
+  if (severity === "good") {
+    return {
+      labelText: "Bagus",
+      label: "text-income",
+      card: "border-income/20 bg-income/10",
+    };
+  }
+
+  return {
+    labelText: "Insight",
+    label: "text-accent-strong",
+    card: "border-border bg-surface",
+  };
+}

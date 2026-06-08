@@ -1640,6 +1640,17 @@ App mulai punya semi-automation tanpa biaya berbayar.
 
 ---
 
+### Future Phase — Monthly Review & Insights
+
+Scope dan aturan implementasi:
+
+```txt
+Monthly Review & Recommendations MVP didokumentasikan di:
+docs/design/07_MONTHLY_REVIEW_INSIGHTS.md
+```
+
+---
+
 ## 28. Non-Functional Requirements
 
 ### Performance

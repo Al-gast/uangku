@@ -21,6 +21,11 @@ export default function SettingsPage() {
       description: "Atur batas pengeluaran bulanan.",
     },
     {
+      href: "/insights",
+      title: "Rekap & Insight",
+      description: "Lihat ringkasan dan rekomendasi bulanan.",
+    },
+    {
       href: "/settings/appearance",
       title: "Tampilan",
       description: "Pilih mode tampilan dan warna tema.",
