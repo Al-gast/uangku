@@ -50,6 +50,8 @@ export type CashflowFilters = {
   categoryId: string | null;
   source: CashflowTransactionItem["source"] | null;
   range: CashflowDateRange;
+  monthKey: string | null;
+  monthLabel: string | null;
 };
 
 export type CashflowFilterAccountOption = {

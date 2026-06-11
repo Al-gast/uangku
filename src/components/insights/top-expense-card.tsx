@@ -1,13 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { usePrivacy } from "@/components/providers/privacy-provider";
 import { MoneyText, PrivateText } from "@/components/ui/money-text";
+import { buildCashflowDrilldownHref } from "@/lib/insights/links";
 import type { TopExpenseCategory } from "@/lib/insights/types";
 
 export function TopExpenseCard({
   categories,
+  monthKey,
 }: {
   categories: TopExpenseCategory[];
+  monthKey: string;
 }) {
   const { privacyEnabled } = usePrivacy();
 
@@ -30,11 +34,15 @@ export function TopExpenseCard({
             const barWidth = Math.min(100, Math.max(0, category.sharePercent));
 
             return (
-              <article
+              <Link
                 key={category.categoryId}
+                href={buildCashflowDrilldownHref({
+                  monthKey,
+                  categoryId: category.categoryId,
+                })}
                 className={`p-4 ${
                   index > 0 ? "border-t border-border" : ""
-                }`}
+                } block transition hover:bg-surface-muted active:scale-[0.995]`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
@@ -60,7 +68,7 @@ export function TopExpenseCard({
                     }}
                   />
                 </div>
-              </article>
+              </Link>
             );
           })
         )}

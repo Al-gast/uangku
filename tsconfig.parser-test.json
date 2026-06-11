@@ -14,6 +14,7 @@
   "include": [
     "tests/**/*.ts",
     "src/lib/chat/**/*.ts",
+    "src/lib/insights/**/*.ts",
     "src/lib/portfolio/types.ts",
     "src/types/**/*.ts"
   ]

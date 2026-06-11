@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ActivityCard } from "@/components/insights/activity-card";
 import { BudgetHealthCard } from "@/components/insights/budget-health-card";
+import { MonthNavigator } from "@/components/insights/month-navigator";
+import { MonthlyComparisonCard } from "@/components/insights/monthly-comparison-card";
+import { MonthlyProjectionCard } from "@/components/insights/monthly-projection-card";
 import { MonthlySummaryCard } from "@/components/insights/monthly-summary-card";
 import { RecommendationCard } from "@/components/insights/recommendation-card";
 import { TopExpenseCard } from "@/components/insights/top-expense-card";
@@ -12,15 +15,31 @@ export const metadata: Metadata = {
   title: "Rekap Bulanan",
 };
 
-export default async function InsightsPage() {
-  const data = await getMonthlyReviewData();
+export default async function InsightsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const requestedMonth = Array.isArray(params.month)
+    ? params.month[0]
+    : params.month;
+  const data = await getMonthlyReviewData(requestedMonth);
 
   return (
     <>
       <PageIntro
         eyebrow={data.monthLabel}
         title="Rekap Bulanan"
-        description="Lihat ke mana uangmu bulan ini dan apa yang perlu diperhatikan."
+        description="Lihat ke mana uangmu pergi dan apa yang perlu diperhatikan."
+      />
+
+      <MonthNavigator
+        monthKey={data.monthKey}
+        monthLabel={data.monthLabel}
+        previousMonthKey={data.previousMonthKey}
+        nextMonthKey={data.nextMonthKey}
+        isCurrentMonth={data.isCurrentMonth}
       />
 
       {data.error ? (
@@ -30,7 +49,7 @@ export default async function InsightsPage() {
       ) : null}
 
       {!data.hasMonthlyTransactions ? (
-        <EmptyInsightsState />
+        <EmptyInsightsState monthLabel={data.monthLabel} />
       ) : (
         <div className="space-y-6">
           <MonthlySummaryCard
@@ -41,13 +60,25 @@ export default async function InsightsPage() {
             savingRate={data.savingRate}
           />
 
-          <TopExpenseCard categories={data.topExpenseCategories} />
+          <MonthlyComparisonCard
+            comparison={data.comparison}
+            monthKey={data.monthKey}
+          />
+
+          <MonthlyProjectionCard projection={data.projection} />
+
+          <TopExpenseCard
+            categories={data.topExpenseCategories}
+            monthKey={data.monthKey}
+          />
 
           <BudgetHealthCard budgets={data.budgetHealth} />
 
           <ActivityCard
             investment={data.investmentActivity}
             debt={data.debtActivity}
+            isCurrentMonth={data.isCurrentMonth}
+            monthKey={data.monthKey}
           />
 
           <RecommendationCard recommendations={data.recommendations} />
@@ -57,10 +88,10 @@ export default async function InsightsPage() {
   );
 }
 
-function EmptyInsightsState() {
+function EmptyInsightsState({ monthLabel }: { monthLabel: string }) {
   return (
     <section className="rounded-card border border-dashed border-accent/30 bg-surface p-6 text-center shadow-card">
-      <h2 className="text-lg font-bold">Belum ada data bulan ini.</h2>
+      <h2 className="text-lg font-bold">Belum ada data {monthLabel}.</h2>
       <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted">
         Catat transaksi pertama lewat form cashflow atau chat agar rekap bulanan
         bisa dihitung.

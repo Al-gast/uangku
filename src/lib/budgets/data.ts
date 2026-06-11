@@ -1,7 +1,10 @@
 import "server-only";
 
 import { notFound } from "next/navigation";
-import { getJakartaMonthRange } from "@/lib/date";
+import {
+  getJakartaMonthRange,
+  type JakartaMonthRange,
+} from "@/lib/date";
 import type {
   BudgetCategoryOption,
   BudgetProgressItem,
@@ -71,8 +74,11 @@ export async function getBudgetCategoryOptions(includeCategoryId?: string) {
 }
 
 export async function getCurrentMonthBudgets() {
+  return getMonthlyBudgets(getJakartaMonthRange());
+}
+
+export async function getMonthlyBudgets(month: JakartaMonthRange) {
   const supabase = await createClient();
-  const month = getJakartaMonthRange();
   const { data: budgetRows, error: budgetError } = await supabase
     .from("budgets")
     .select("id,category_id,amount,start_date,end_date")

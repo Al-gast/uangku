@@ -2,7 +2,10 @@ import "server-only";
 
 import { notFound } from "next/navigation";
 import { spendableAccountTypes } from "@/constants/accounts";
-import { getJakartaMonthRange } from "@/lib/date";
+import {
+  getJakartaMonthRange,
+  resolveJakartaMonthRange,
+} from "@/lib/date";
 import { createClient } from "@/lib/supabase/server";
 import type {
   CashflowAccountOption,
@@ -81,7 +84,15 @@ function shiftDate(date: string, days: number) {
   return shifted.toISOString().slice(0, 10);
 }
 
-function getDateBounds(range: CashflowDateRange) {
+function getDateBounds(
+  range: CashflowDateRange,
+  monthKey: string | null = null,
+) {
+  if (monthKey) {
+    const month = resolveJakartaMonthRange(monthKey);
+    return { start: month.start, end: month.end };
+  }
+
   if (range === "all") {
     return null;
   }
@@ -110,6 +121,14 @@ export function parseCashflowFilters(
   const categoryId = firstParam(params.category);
   const source = firstParam(params.source);
   const range = firstParam(params.range);
+  const requestedMonth = firstParam(params.month);
+  const resolvedMonth = requestedMonth
+    ? resolveJakartaMonthRange(requestedMonth)
+    : null;
+  const month =
+    requestedMonth && resolvedMonth?.key === requestedMonth
+      ? resolvedMonth
+      : null;
 
   return {
     type: isManualTransactionType(type) ? type : null,
@@ -117,6 +136,8 @@ export function parseCashflowFilters(
     categoryId: isUuid(categoryId) ? categoryId! : null,
     source: source === "manual" || source === "chat" ? source : null,
     range: isCashflowDateRange(range) ? range : "all",
+    monthKey: month?.key ?? null,
+    monthLabel: month?.label ?? null,
   };
 }
 
@@ -127,6 +148,7 @@ export function countActiveCashflowFilters(filters: CashflowFilters) {
     filters.categoryId,
     filters.source,
     filters.range === "all" ? null : filters.range,
+    filters.monthKey,
   ].filter(Boolean).length;
 }
 
@@ -415,7 +437,10 @@ export async function getCashflowTransactions(filters?: CashflowFilters) {
     );
   }
 
-  const dateBounds = getDateBounds(filters?.range ?? "all");
+  const dateBounds = getDateBounds(
+    filters?.range ?? "all",
+    filters?.monthKey ?? null,
+  );
 
   if (dateBounds) {
     query = query

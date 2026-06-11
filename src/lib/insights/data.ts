@@ -1,70 +1,60 @@
 import "server-only";
 
-import { getCurrentMonthBudgets } from "@/lib/budgets/data";
-import { getJakartaMonthRange } from "@/lib/date";
+import { getMonthlyBudgets } from "@/lib/budgets/data";
+import {
+  getJakartaMonthProgress,
+  resolveJakartaMonthRange,
+} from "@/lib/date";
+import {
+  buildMonthlyComparison,
+  buildMonthlyProjection,
+  buildMonthlyReviewCalculations,
+  collectMonthlyReviewCategoryIds,
+  INSIGHT_TRANSACTION_TYPES,
+  type InsightLiabilityRow,
+  type InsightTransactionRow,
+} from "@/lib/insights/calculations";
+import { addRecommendationActions } from "@/lib/insights/links";
 import { buildInsightRecommendations } from "@/lib/insights/recommendations";
-import type {
-  BudgetHealthItem,
-  BudgetHealthStatus,
-  MonthlyReviewData,
-  TopExpenseCategory,
-} from "@/lib/insights/types";
+import type { MonthlyReviewData } from "@/lib/insights/types";
 import { createClient } from "@/lib/supabase/server";
-
-type InsightTransactionType =
-  | "income"
-  | "expense"
-  | "transfer"
-  | "investment_buy"
-  | "investment_sell"
-  | "debt_payment";
-
-type InsightTransactionRow = {
-  type: InsightTransactionType;
-  amount: number | string;
-  admin_fee_amount: number | string | null;
-  category_id: string | null;
-  admin_fee_category_id: string | null;
-};
 
 type CategoryRow = {
   id: string;
   name: string;
 };
 
-const INSIGHT_TRANSACTION_TYPES: InsightTransactionType[] = [
-  "income",
-  "expense",
-  "transfer",
-  "investment_buy",
-  "investment_sell",
-  "debt_payment",
-];
-
-export async function getMonthlyReviewData(): Promise<MonthlyReviewData> {
+export async function getMonthlyReviewData(
+  monthKey?: string | null,
+): Promise<MonthlyReviewData> {
   const supabase = await createClient();
-  const month = getJakartaMonthRange();
+  const month = resolveJakartaMonthRange(monthKey);
+  const previousMonth = resolveJakartaMonthRange(month.previousKey);
 
-  const [transactionResult, budgetResult] = await Promise.all([
+  const [
+    transactionResult,
+    previousTransactionResult,
+    liabilityResult,
+    budgetResult,
+  ] = await Promise.all([
+    getInsightTransactions(supabase, month.start, month.end),
+    getInsightTransactions(supabase, previousMonth.start, previousMonth.end),
     supabase
-      .from("transactions")
-      .select("type,amount,admin_fee_amount,category_id,admin_fee_category_id")
-      .in("type", INSIGHT_TRANSACTION_TYPES)
-      .gte("transaction_date", month.start)
-      .lt("transaction_date", month.end),
-    getCurrentMonthBudgets(),
+      .from("liabilities")
+      .select("id,remaining_amount")
+      .gt("remaining_amount", 0),
+    getMonthlyBudgets(month),
   ]);
 
   const transactions = (transactionResult.data ?? []) as InsightTransactionRow[];
+  const previousTransactions = (previousTransactionResult.data ??
+    []) as InsightTransactionRow[];
+  const liabilities = (liabilityResult.data ?? []) as InsightLiabilityRow[];
   const categoryIds = [
-    ...new Set(
-      transactions
-        .flatMap((transaction) => [
-          transaction.category_id,
-          transaction.admin_fee_category_id,
-        ])
-        .filter((categoryId): categoryId is string => Boolean(categoryId)),
-    ),
+    ...new Set([
+      ...collectMonthlyReviewCategoryIds(transactions),
+      ...collectMonthlyReviewCategoryIds(previousTransactions),
+    ]),
   ];
 
   const categoryResult =
@@ -79,182 +69,93 @@ export async function getMonthlyReviewData(): Promise<MonthlyReviewData> {
     ]),
   );
 
-  const monthlyIncome = transactions.reduce(
-    (total, transaction) =>
-      transaction.type === "income" ? total + Number(transaction.amount) : total,
-    0,
-  );
-
-  const monthlyExpense = transactions.reduce((total, transaction) => {
-    const normalExpense =
-      transaction.type === "expense" ? Number(transaction.amount) : 0;
-    const adminFee = Number(transaction.admin_fee_amount ?? 0);
-
-    return total + normalExpense + adminFee;
-  }, 0);
-
-  const netCashflow = monthlyIncome - monthlyExpense;
-  const savingRate =
-    monthlyIncome > 0 ? (netCashflow / monthlyIncome) * 100 : null;
-  const adminFeeTotal = transactions.reduce(
-    (total, transaction) => total + Number(transaction.admin_fee_amount ?? 0),
-    0,
-  );
-
-  const topExpenseCategories = buildTopExpenseCategories(
+  const calculations = buildMonthlyReviewCalculations({
     transactions,
     categoryNames,
-    monthlyExpense,
-  );
-  const budgetHealth = buildBudgetHealth(budgetResult.budgets);
-  const investmentActivity = {
-    buyTotal: sumAmountByType(transactions, "investment_buy"),
-    sellTotal: sumAmountByType(transactions, "investment_sell"),
-    netFlow:
-      sumAmountByType(transactions, "investment_buy") -
-      sumAmountByType(transactions, "investment_sell"),
-    feeTotal: transactions.reduce(
-      (total, transaction) =>
-        transaction.type === "investment_buy" ||
-        transaction.type === "investment_sell"
-          ? total + Number(transaction.admin_fee_amount ?? 0)
-          : total,
-      0,
-    ),
-  };
-  const debtActivity = {
-    principalPaid: sumAmountByType(transactions, "debt_payment"),
-    feeTotal: transactions.reduce(
-      (total, transaction) =>
-        transaction.type === "debt_payment"
-          ? total + Number(transaction.admin_fee_amount ?? 0)
-          : total,
-      0,
-    ),
-  };
-
-  const recommendations = buildInsightRecommendations({
-    hasMonthlyTransactions: transactions.length > 0,
-    monthlyIncome,
-    monthlyExpense,
-    savingRate,
-    adminFeeTotal,
-    topExpenseCategories,
-    budgetHealth,
-    investmentActivity,
-    debtActivity,
+    budgets: budgetResult.budgets,
+    liabilities,
+  });
+  const previousCalculations = buildMonthlyReviewCalculations({
+    transactions: previousTransactions,
+    categoryNames,
+    budgets: [],
+    liabilities: [],
+  });
+  const comparison = buildMonthlyComparison({
+    current: calculations,
+    previous: previousCalculations,
+    previousMonthLabel: previousMonth.label,
+    hasPreviousTransactions: previousTransactions.length > 0,
+  });
+  const monthProgress = getJakartaMonthProgress(month);
+  const projection = buildMonthlyProjection({
+    calculations,
+    elapsedDays: monthProgress.elapsedDays,
+    totalDays: monthProgress.totalDays,
+    isCurrentMonth: month.isCurrentMonth,
+    hasTransactions: transactions.length > 0,
   });
 
+  const recommendations = addRecommendationActions(
+    buildInsightRecommendations({
+      hasMonthlyTransactions: transactions.length > 0,
+      monthlyIncome: calculations.monthlyIncome,
+      monthlyExpense: calculations.monthlyExpense,
+      savingRate: calculations.savingRate,
+      adminFeeTotal: calculations.adminFeeTotal,
+      adminFeeBreakdown: calculations.adminFeeBreakdown,
+      topExpenseCategories: calculations.topExpenseCategories,
+      budgetHealth: calculations.budgetHealth,
+      investmentActivity: calculations.investmentActivity,
+      debtActivity: calculations.debtActivity,
+      projection,
+    }),
+    {
+      monthKey: month.key,
+      topExpenseCategories: calculations.topExpenseCategories,
+    },
+  );
+
   return {
+    monthKey: month.key,
     monthLabel: month.label,
+    previousMonthKey: month.previousKey,
+    nextMonthKey: month.nextKey,
+    isCurrentMonth: month.isCurrentMonth,
     hasMonthlyTransactions: transactions.length > 0,
-    monthlyIncome,
-    monthlyExpense,
-    netCashflow,
-    savingRate,
-    adminFeeTotal,
-    topExpenseCategories,
-    budgetHealth,
-    investmentActivity,
-    debtActivity,
+    monthlyIncome: calculations.monthlyIncome,
+    monthlyExpense: calculations.monthlyExpense,
+    netCashflow: calculations.netCashflow,
+    savingRate: calculations.savingRate,
+    adminFeeTotal: calculations.adminFeeTotal,
+    adminFeeBreakdown: calculations.adminFeeBreakdown,
+    topExpenseCategories: calculations.topExpenseCategories,
+    budgetHealth: calculations.budgetHealth,
+    investmentActivity: calculations.investmentActivity,
+    debtActivity: calculations.debtActivity,
+    comparison,
+    projection,
     recommendations,
     error:
-      transactionResult.error || categoryResult.error || budgetResult.error
+      transactionResult.error ||
+      previousTransactionResult.error ||
+      categoryResult.error ||
+      budgetResult.error ||
+      liabilityResult.error
         ? "Insight bulan ini belum bisa dimuat lengkap."
         : null,
   };
 }
 
-function buildTopExpenseCategories(
-  transactions: InsightTransactionRow[],
-  categoryNames: Map<string, string>,
-  monthlyExpense: number,
-): TopExpenseCategory[] {
-  const spentByCategory = new Map<string, number>();
-
-  for (const transaction of transactions) {
-    if (transaction.type === "expense" && transaction.category_id) {
-      spentByCategory.set(
-        transaction.category_id,
-        (spentByCategory.get(transaction.category_id) ?? 0) +
-          Number(transaction.amount),
-      );
-    }
-
-    if (
-      transaction.admin_fee_category_id &&
-      Number(transaction.admin_fee_amount ?? 0) > 0
-    ) {
-      spentByCategory.set(
-        transaction.admin_fee_category_id,
-        (spentByCategory.get(transaction.admin_fee_category_id) ?? 0) +
-          Number(transaction.admin_fee_amount ?? 0),
-      );
-    }
-  }
-
-  return [...spentByCategory.entries()]
-    .map(([categoryId, spent]) => ({
-      categoryId,
-      categoryName: categoryNames.get(categoryId) ?? "Kategori lainnya",
-      spent,
-      sharePercent: monthlyExpense > 0 ? (spent / monthlyExpense) * 100 : 0,
-    }))
-    .sort((a, b) => b.spent - a.spent || a.categoryName.localeCompare(b.categoryName))
-    .slice(0, 5);
-}
-
-function buildBudgetHealth(
-  budgets: {
-    id: string;
-    categoryName: string;
-    amount: number;
-    spent: number;
-    remaining: number;
-    progressPercent: number;
-  }[],
-): BudgetHealthItem[] {
-  return budgets
-    .map((budget) => {
-      const status: BudgetHealthStatus =
-        budget.progressPercent > 100
-          ? "overbudget"
-          : budget.progressPercent >= 80
-            ? "warning"
-            : "normal";
-
-      return {
-        id: budget.id,
-        categoryName: budget.categoryName,
-        amount: budget.amount,
-        spent: budget.spent,
-        remaining: budget.remaining,
-        progressPercent: budget.progressPercent,
-        status,
-      };
-    })
-    .sort((a, b) => {
-      const statusRank: Record<BudgetHealthStatus, number> = {
-        overbudget: 0,
-        warning: 1,
-        normal: 2,
-      };
-
-      return (
-        statusRank[a.status] - statusRank[b.status] ||
-        b.progressPercent - a.progressPercent ||
-        a.categoryName.localeCompare(b.categoryName)
-      );
-    });
-}
-
-function sumAmountByType(
-  transactions: InsightTransactionRow[],
-  type: InsightTransactionType,
+function getInsightTransactions(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  start: string,
+  end: string,
 ) {
-  return transactions.reduce(
-    (total, transaction) =>
-      transaction.type === type ? total + Number(transaction.amount) : total,
-    0,
-  );
+  return supabase
+    .from("transactions")
+    .select("type,amount,admin_fee_amount,category_id,admin_fee_category_id")
+    .in("type", INSIGHT_TRANSACTION_TYPES)
+    .gte("transaction_date", start)
+    .lt("transaction_date", end);
 }

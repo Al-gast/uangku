@@ -1,11 +1,14 @@
 import type {
+  AdminFeeBreakdownItem,
   BudgetHealthItem,
   DebtActivity,
   InsightRecommendation,
   InsightSeverity,
   InvestmentActivity,
+  MonthlyProjection,
   TopExpenseCategory,
 } from "@/lib/insights/types";
+import { formatIdr } from "../format";
 
 type RecommendationInput = {
   hasMonthlyTransactions: boolean;
@@ -13,13 +16,16 @@ type RecommendationInput = {
   monthlyExpense: number;
   savingRate: number | null;
   adminFeeTotal: number;
+  adminFeeBreakdown: AdminFeeBreakdownItem[];
   topExpenseCategories: TopExpenseCategory[];
   budgetHealth: BudgetHealthItem[];
   investmentActivity: InvestmentActivity;
   debtActivity: DebtActivity;
+  projection: MonthlyProjection;
 };
 
 const FOOD_KEYWORDS = ["makan", "jajan", "kopi", "restoran", "food"];
+const SAVING_RATE_TARGET = 20;
 
 const SEVERITY_ORDER: Record<InsightSeverity, number> = {
   danger: 0,
@@ -34,10 +40,12 @@ export function buildInsightRecommendations({
   monthlyExpense,
   savingRate,
   adminFeeTotal,
+  adminFeeBreakdown,
   topExpenseCategories,
   budgetHealth,
   investmentActivity,
   debtActivity,
+  projection,
 }: RecommendationInput): InsightRecommendation[] {
   const recommendations: InsightRecommendation[] = [];
 
@@ -50,18 +58,38 @@ export function buildInsightRecommendations({
     });
   }
 
-  if (monthlyIncome > 0 && savingRate !== null && savingRate < 10) {
+  if (
+    monthlyIncome > 0 &&
+    savingRate !== null &&
+    savingRate < SAVING_RATE_TARGET
+  ) {
+    const reductionToTarget = Math.max(
+      0,
+      monthlyExpense -
+        monthlyIncome * (1 - SAVING_RATE_TARGET / 100),
+    );
+
     recommendations.push({
       id: "low-saving-rate",
       severity: "warning",
-      title: "Saving rate masih rendah",
-      body: "Sisa cashflow bulan ini masih tipis. Coba cek kategori pengeluaran terbesar sebelum tambah pengeluaran baru.",
+      title: "Saving rate di bawah target",
+      body:
+        reductionToTarget > 0
+          ? `Kurangi pengeluaran sekitar ${formatIdr(
+              reductionToTarget,
+            )} agar saving rate bulan ini kembali ke target ${SAVING_RATE_TARGET}%. Mulai dari kategori pengeluaran terbesar.`
+          : "Jaga pengeluaran berikutnya agar saving rate tidak kembali turun.",
       privacyBody:
-        "Cashflow bulan ini masih perlu dijaga. Coba cek kategori pengeluaran terbesar.",
+        "Cashflow bulan ini perlu dijaga. Mulai dari kategori pengeluaran terbesar agar saving rate membaik.",
     });
   }
 
-  if (monthlyIncome > 0 && savingRate !== null && savingRate >= 20 && monthlyExpense > 0) {
+  if (
+    monthlyIncome > 0 &&
+    savingRate !== null &&
+    savingRate >= SAVING_RATE_TARGET &&
+    monthlyExpense > 0
+  ) {
     recommendations.push({
       id: "healthy-saving-rate",
       severity: "good",
@@ -75,14 +103,24 @@ export function buildInsightRecommendations({
     (budget) => budget.status === "overbudget",
   );
   if (overbudgetItems.length > 0) {
+    const highestOverbudget = overbudgetItems.reduce((highest, budget) =>
+      Math.abs(budget.remaining) > Math.abs(highest.remaining)
+        ? budget
+        : highest,
+    );
+
     recommendations.push({
       id: "overbudget",
       severity: "danger",
       title: "Ada budget yang sudah lewat",
       body:
         overbudgetItems.length === 1
-          ? `${overbudgetItems[0].categoryName} sudah melewati budget bulan ini. Pertimbangkan tahan pengeluaran di kategori ini dulu.`
-          : `${overbudgetItems.length} kategori sudah melewati budget bulan ini. Mulai dari kategori dengan progress tertinggi.`,
+          ? `${overbudgetItems[0].categoryName} sudah melebihi budget sebesar ${formatIdr(
+              Math.abs(overbudgetItems[0].remaining),
+            )}. Tahan pengeluaran tambahan di kategori ini sampai bulan berikutnya.`
+          : `${overbudgetItems.length} kategori sudah melewati budget. Kelebihan terbesar ada di ${highestOverbudget.categoryName}, sebesar ${formatIdr(
+              Math.abs(highestOverbudget.remaining),
+            )}.`,
       privacyBody:
         "Ada kategori yang sudah melewati budget bulan ini. Cek detail budget saat kondisi aman.",
     });
@@ -92,11 +130,29 @@ export function buildInsightRecommendations({
     (budget) => budget.status === "warning",
   );
   if (nearBudgetItems.length > 0) {
+    const budget = nearBudgetItems[0];
+    const remainingDays = projection.available
+      ? Math.max(1, projection.totalDays - projection.elapsedDays)
+      : null;
+    const dailyAllowance =
+      remainingDays && budget.remaining > 0
+        ? budget.remaining / remainingDays
+        : null;
+
     recommendations.push({
       id: "near-budget-limit",
       severity: "warning",
       title: "Budget hampir habis",
-      body: `${nearBudgetItems[0].categoryName} sudah mendekati batas budget. Pantau pengeluaran kategori ini sampai akhir bulan.`,
+      body:
+        dailyAllowance !== null
+          ? `${budget.categoryName} tersisa ${formatIdr(
+              budget.remaining,
+            )} untuk ${remainingDays} hari tersisa. Jaga pengeluaran sekitar ${formatIdr(
+              dailyAllowance,
+            )} per hari agar tidak melewati budget.`
+          : `${budget.categoryName} tersisa ${formatIdr(
+              Math.max(0, budget.remaining),
+            )}. Pantau pengeluaran kategori ini sampai akhir periode.`,
       privacyBody:
         "Ada budget yang hampir habis. Pantau kategori ini sampai akhir bulan.",
     });
@@ -116,7 +172,11 @@ export function buildInsightRecommendations({
       id: "high-food-spending",
       severity: "info",
       title: "Pengeluaran makan/jajan cukup dominan",
-      body: "Kategori makan atau jajan cukup besar bulan ini. Kalau mau hemat cepat, kategori ini biasanya paling mudah dipantau.",
+      body: `${foodCategory.categoryName} sudah menyerap ${Math.round(
+        foodCategory.sharePercent,
+      )}% pengeluaran bulan ini (${formatIdr(
+        foodCategory.spent,
+      )}). Jadikan kategori ini prioritas pertama untuk dikurangi.`,
     });
   }
 
@@ -124,11 +184,21 @@ export function buildInsightRecommendations({
     adminFeeTotal >= 50_000 ||
     (monthlyExpense > 0 && adminFeeTotal / monthlyExpense >= 0.05)
   ) {
+    const largestFeeSource = adminFeeBreakdown[0];
+
     recommendations.push({
       id: "high-admin-fee",
       severity: "info",
       title: "Biaya admin mulai terasa",
-      body: "Biaya admin bulan ini cukup terlihat. Coba cek pola transfer, investasi, atau pembayaran hutang yang sering kena biaya.",
+      body: largestFeeSource
+        ? `Biaya admin bulan ini mencapai ${formatIdr(
+            adminFeeTotal,
+          )}. Sumber terbesar berasal dari ${largestFeeSource.label}, sebesar ${formatIdr(
+            largestFeeSource.amount,
+          )} (${Math.round(largestFeeSource.sharePercent)}%).`
+        : `Biaya admin bulan ini mencapai ${formatIdr(
+            adminFeeTotal,
+          )}. Periksa transaksi berbiaya yang bisa dikurangi.`,
       privacyBody:
         "Ada biaya admin yang cukup terlihat bulan ini. Cek pola transaksi saat kondisi aman.",
     });
@@ -161,12 +231,73 @@ export function buildInsightRecommendations({
     });
   }
 
+  if (debtActivity.status === "heavy") {
+    recommendations.push({
+      id: "heavy-debt-burden",
+      severity: "danger",
+      title: "Beban cicilan berat",
+      body: `Pembayaran cicilan sudah mengambil ${Math.round(
+        debtActivity.paymentToIncomeRatio ?? 0,
+      )}% pemasukan bulan ini (${formatIdr(
+        debtActivity.totalPaid,
+      )}). Hindari cicilan baru sampai rasio kembali di bawah 30%.`,
+      privacyBody:
+        "Beban cicilan bulan ini terlihat berat. Pertimbangkan tahan cicilan baru dulu.",
+    });
+  } else if (debtActivity.status === "watch") {
+    recommendations.push({
+      id: "watch-debt-burden",
+      severity: "warning",
+      title: "Beban cicilan perlu dipantau",
+      body: `Pembayaran cicilan sudah mencapai ${Math.round(
+        debtActivity.paymentToIncomeRatio ?? 0,
+      )}% pemasukan bulan ini. Gunakan batas 30% sebagai alarm sebelum menambah cicilan baru.`,
+      privacyBody:
+        "Beban cicilan bulan ini perlu dipantau sebelum menambah kewajiban baru.",
+    });
+  }
+
   if (debtActivity.feeTotal > 0) {
     recommendations.push({
       id: "debt-fee",
       severity: "info",
       title: "Ada biaya atau bunga hutang",
       body: "Biaya atau bunga hutang tetap dihitung sebagai pengeluaran. Pantau agar tidak membesar dari bulan ke bulan.",
+    });
+  }
+
+  if (projection.available && projection.projectedNetCashflow < 0) {
+    const reductionNeeded = Math.abs(projection.projectedNetCashflow);
+
+    recommendations.push({
+      id: "projected-negative-cashflow",
+      severity: "danger",
+      title: "Cashflow berpotensi negatif",
+      body: `Jika pola saat ini berlanjut, cashflow akhir bulan berpotensi minus ${formatIdr(
+        reductionNeeded,
+      )}. Kurangi proyeksi pengeluaran setidaknya sebesar nominal tersebut.`,
+      privacyBody:
+        "Pola pengeluaran saat ini berpotensi membuat cashflow akhir bulan negatif.",
+    });
+  }
+
+  if (projection.available && projection.budgetRisks.length > 0) {
+    const highestRisk = projection.budgetRisks[0];
+
+    recommendations.push({
+      id: "projected-overbudget",
+      severity: "warning",
+      title: "Budget berpotensi terlewati",
+      body:
+        projection.budgetRisks.length === 1
+          ? `${highestRisk.categoryName} diproyeksikan melebihi budget sekitar ${formatIdr(
+              highestRisk.projectedOverrun,
+            )}. Kurangi laju pengeluaran kategori ini mulai sekarang.`
+          : `${projection.budgetRisks.length} kategori berpotensi melewati budget. Risiko terbesar ada di ${highestRisk.categoryName}, sekitar ${formatIdr(
+              highestRisk.projectedOverrun,
+            )} di atas batas.`,
+      privacyBody:
+        "Ada budget yang berpotensi terlewati sebelum akhir bulan.",
     });
   }
 

@@ -44,11 +44,12 @@ export function BudgetHealthCard({
             const tone = getBudgetTone(budget.status);
 
             return (
-              <article
+              <Link
                 key={budget.id}
+                href={`/settings/budgets/${budget.id}/edit`}
                 className={`p-4 ${tone.background} ${
                   index > 0 ? "border-t border-border" : ""
-                }`}
+                } block transition hover:brightness-[0.98] active:scale-[0.995]`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
@@ -82,7 +83,7 @@ export function BudgetHealthCard({
                   {budget.remaining < 0 ? "Melebihi " : "Sisa "}
                   <MoneyText value={Math.abs(budget.remaining)} />
                 </p>
-              </article>
+              </Link>
             );
           })
         )}

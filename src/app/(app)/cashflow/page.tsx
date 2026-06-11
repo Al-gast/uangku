@@ -23,6 +23,7 @@ type CashflowPageProps = {
     category?: string | string[];
     source?: string | string[];
     range?: string | string[];
+    month?: string | string[];
   }>;
 };
 

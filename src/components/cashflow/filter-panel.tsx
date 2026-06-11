@@ -43,6 +43,18 @@ export function CashflowFilterPanel({
         method="get"
         className="space-y-4 border-t border-border p-4"
       >
+        {filters.monthKey && (
+          <>
+            <input type="hidden" name="month" value={filters.monthKey} />
+            <div className="flex items-center justify-between gap-3 rounded-control bg-accent-soft p-3 text-sm">
+              <span className="text-muted">Periode rekap</span>
+              <span className="font-bold text-accent-strong">
+                {filters.monthLabel}
+              </span>
+            </div>
+          </>
+        )}
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <ThemedSelect
             label="Jenis transaksi"
@@ -110,6 +122,11 @@ export function CashflowFilterPanel({
           name="range"
           value={range}
           onChange={(value) => setRange(value as CashflowFilters["range"])}
+          helperText={
+            filters.monthKey
+              ? "Rentang mengikuti periode rekap yang dipilih."
+              : undefined
+          }
           options={[
             { value: "all", label: "Semua waktu" },
             { value: "this_month", label: "Bulan ini" },

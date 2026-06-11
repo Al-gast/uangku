@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePrivacy } from "@/components/providers/privacy-provider";
 import type {
   InsightRecommendation,
@@ -45,6 +46,14 @@ export function RecommendationCard({
                 </p>
                 <h3 className="mt-2 font-bold">{recommendation.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-muted">{body}</p>
+                {recommendation.actionHref && recommendation.actionLabel && (
+                  <Link
+                    href={recommendation.actionHref}
+                    className="mt-4 inline-flex min-h-10 items-center text-sm font-bold text-accent-strong"
+                  >
+                    {recommendation.actionLabel} →
+                  </Link>
+                )}
               </article>
             );
           })}
