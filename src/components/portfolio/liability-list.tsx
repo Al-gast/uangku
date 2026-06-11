@@ -4,22 +4,22 @@ import Link from "next/link";
 import { usePrivacy } from "@/components/providers/privacy-provider";
 import { MoneyText } from "@/components/ui/money-text";
 import { formatDateId } from "@/lib/format";
+import { getLiabilityReminderStatus } from "@/lib/portfolio/calculations";
 import type { PortfolioLiabilityItem } from "@/lib/portfolio/types";
 
-function dueDateCopy(dueDate: string) {
-  const dueTime = new Date(`${dueDate}T00:00:00+07:00`).getTime();
-  const now = Date.now();
-  const days = Math.ceil((dueTime - now) / (24 * 60 * 60 * 1000));
-
-  if (days < 0) {
+function dueDateCopy(
+  dueDate: string,
+  reminderStatus: ReturnType<typeof getLiabilityReminderStatus>,
+) {
+  if (reminderStatus.state === "overdue") {
     return { text: "⚠️ Lewat jatuh tempo!", urgent: true };
   }
 
   return {
-    text: `${days <= 7 ? "⚠️ " : ""}Jatuh tempo: ${formatDateId(
+    text: `${reminderStatus.state === "due_soon" ? "⚠️ " : ""}Jatuh tempo: ${formatDateId(
       `${dueDate}T00:00:00+07:00`,
     )}`,
-    urgent: days <= 7,
+    urgent: reminderStatus.state === "due_soon",
   };
 }
 
@@ -31,6 +31,14 @@ export function LiabilityList({
   totalLiability: number;
 }) {
   const { privacyEnabled } = usePrivacy();
+  const reminderStatuses = liabilities.map((liability) => ({
+    liability,
+    status: getLiabilityReminderStatus(liability),
+  }));
+  const activeAlerts = reminderStatuses.filter(
+    ({ status }) =>
+      status.state === "due_soon" || status.state === "overdue",
+  );
 
   return (
     <section>
@@ -50,8 +58,18 @@ export function LiabilityList({
         </div>
       ) : (
         <>
+          {activeAlerts.length > 0 && (
+            <div className="mb-3 rounded-card border border-expense/25 bg-expense/10 p-4">
+              <p className="text-sm font-bold text-expense">
+                Ada hutang yang jatuh tempo sebentar lagi.
+              </p>
+              <p className="mt-1 text-xs leading-5 text-muted">
+                {activeAlerts.length} pengingat aktif perlu diperiksa.
+              </p>
+            </div>
+          )}
           <div className="space-y-3">
-            {liabilities.map((liability) => {
+            {reminderStatuses.map(({ liability, status }) => {
               const progress =
                 liability.amount > 0
                   ? Math.min(
@@ -60,7 +78,7 @@ export function LiabilityList({
                     )
                   : 0;
               const due = liability.dueDate
-                ? dueDateCopy(liability.dueDate)
+                ? dueDateCopy(liability.dueDate, status)
                 : null;
 
               return (
@@ -69,7 +87,14 @@ export function LiabilityList({
                   href={`/portfolio/liability/${liability.id}`}
                   className="block rounded-card border border-border bg-surface p-5 shadow-card transition hover:bg-surface-muted active:scale-[0.99]"
                 >
-                  <h3 className="text-sm font-bold">{liability.name}</h3>
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="text-sm font-bold">{liability.name}</h3>
+                    {status.state !== "inactive" && (
+                      <span className="shrink-0 rounded-full bg-accent-soft px-2.5 py-1 text-[0.65rem] font-bold text-accent-strong">
+                        Pengingat aktif
+                      </span>
+                    )}
+                  </div>
                   <p className="mt-2 text-xs text-muted">
                     Sisa{" "}
                     <MoneyText value={liability.remainingAmount} /> dari{" "}

@@ -1,7 +1,7 @@
 import {
   portfolioAssetTypes,
   type PortfolioAssetType,
-} from "@/lib/portfolio/types";
+} from "./types";
 
 const MAX_AMOUNT = 999_999_999_999_999;
 
@@ -22,6 +22,7 @@ export type LiabilityInput = {
   amount: number;
   remainingAmount: number;
   dueDate: string | null;
+  reminderEnabled: boolean;
   notes: string | null;
 };
 
@@ -84,6 +85,21 @@ function optionalText(value: FormDataEntryValue | null, maxLength: number) {
   }
 
   return text || null;
+}
+
+function isValidDateInput(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
 }
 
 export function parseAssetForm(formData: FormData): AssetInput {
@@ -182,8 +198,16 @@ export function parseLiabilityForm(formData: FormData): LiabilityInput {
 
   const dueDate = String(formData.get("due_date") ?? "").trim();
 
-  if (dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+  if (dueDate && !isValidDateInput(dueDate)) {
     throw new Error("Tanggal jatuh tempo belum valid.");
+  }
+
+  const reminderEnabled = formData.get("reminder_enabled") === "true";
+
+  if (reminderEnabled && !dueDate) {
+    throw new Error(
+      "Isi tanggal jatuh tempo sebelum mengaktifkan pengingat.",
+    );
   }
 
   return {
@@ -191,6 +215,7 @@ export function parseLiabilityForm(formData: FormData): LiabilityInput {
     amount,
     remainingAmount,
     dueDate: dueDate || null,
+    reminderEnabled,
     notes: optionalText(formData.get("notes"), 1000),
   };
 }

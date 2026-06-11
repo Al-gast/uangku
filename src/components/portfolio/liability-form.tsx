@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
   createLiability,
@@ -72,6 +72,18 @@ export function LiabilityForm({
     editing ? updateLiability : createLiability,
     initialState,
   );
+  const [dueDate, setDueDate] = useState(liability?.dueDate ?? "");
+  const [reminderEnabled, setReminderEnabled] = useState(
+    liability?.reminderEnabled ?? false,
+  );
+
+  function updateDueDate(value: string) {
+    setDueDate(value);
+
+    if (!value) {
+      setReminderEnabled(false);
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -116,8 +128,37 @@ export function LiabilityForm({
         <ThemedDateInput
           label="Tanggal jatuh tempo (opsional)"
           name="due_date"
-          defaultValue={liability?.dueDate ?? ""}
+          value={dueDate}
+          onChange={updateDueDate}
         />
+
+        <label
+          className={`flex items-center justify-between gap-4 rounded-card border p-4 ${
+            dueDate
+              ? "border-border bg-surface"
+              : "border-border bg-surface-muted opacity-60"
+          }`}
+        >
+          <span>
+            <span className="block text-sm font-bold">
+              Pengingat jatuh tempo
+            </span>
+            <span className="mt-1 block text-xs leading-5 text-muted">
+              Tampilkan alarm di portfolio saat jatuh tempo sudah dekat.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            aria-checked={reminderEnabled}
+            name="reminder_enabled"
+            value="true"
+            checked={reminderEnabled}
+            disabled={!dueDate}
+            onChange={(event) => setReminderEnabled(event.target.checked)}
+            className="size-5 shrink-0 accent-[var(--accent)]"
+          />
+        </label>
 
         <label className="block">
           <span className="mb-2 block text-sm font-bold">

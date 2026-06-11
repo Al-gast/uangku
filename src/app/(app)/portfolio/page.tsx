@@ -4,7 +4,12 @@ import { AssetList } from "@/components/portfolio/asset-list";
 import { PortfolioHeroCard } from "@/components/portfolio/hero-card";
 import { LiabilityList } from "@/components/portfolio/liability-list";
 import { PortfolioError } from "@/components/portfolio/portfolio-error";
+import { PortfolioRecommendationCard } from "@/components/portfolio/recommendation-card";
 import { PageIntro } from "@/components/ui/page-intro";
+import {
+  buildPortfolioRecommendations,
+  getPortfolioFreshnessSummary,
+} from "@/lib/portfolio/calculations";
 import { getPortfolioData } from "@/lib/portfolio/data";
 
 export const metadata: Metadata = {
@@ -22,6 +27,16 @@ export default async function PortfolioPage({
     searchParams,
     getPortfolioData(),
   ]);
+  const freshness = data.error
+    ? null
+    : getPortfolioFreshnessSummary(
+        data.accounts,
+        data.assets,
+        data.liabilities,
+      );
+  const recommendations = data.error
+    ? []
+    : buildPortfolioRecommendations(data);
 
   return (
     <div className="space-y-6">
@@ -50,11 +65,14 @@ export default async function PortfolioPage({
             netWorth={data.netWorth}
             totalAsset={data.totalAsset}
             totalLiability={data.totalLiability}
+            lastUpdatedAt={freshness?.lastUpdatedAt}
+            staleAssetCount={freshness?.staleAssetCount}
           />
           <AssetAllocation
             allocation={data.allocation}
             totalAsset={data.totalAsset}
           />
+          <PortfolioRecommendationCard recommendations={recommendations} />
           <AssetList accounts={data.accounts} assets={data.assets} />
           <LiabilityList
             liabilities={data.liabilities}

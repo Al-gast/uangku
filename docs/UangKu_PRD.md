@@ -996,6 +996,25 @@ Saham: manual dulu
 Reksadana: manual dulu
 ```
 
+Portfolio menampilkan freshness data:
+
+```txt
+Diperbarui {tanggal terakhir}
+Jika nilai aset belum diperbarui > 30 hari:
+Perlu update nilai
+```
+
+Portfolio juga menampilkan rekomendasi actionable:
+
+```txt
+Net worth negatif → prioritaskan pelunasan hutang
+Hutang jatuh tempo/dekat jatuh tempo → buka liability terkait
+Nilai aset stale → update aset terkait
+Porsi hutang besar → tahan hutang baru
+Alokasi aset terkonsentrasi → cek ulang komposisi
+Belum ada aset investasi → tambah aset
+```
+
 ### Reksadana Data
 
 Untuk RDPU/RDPT:
@@ -1006,7 +1025,8 @@ Jenis: RDPU/RDPT
 Platform: Bibit/Bareksa/lainnya
 Total modal
 Nilai saat ini
-Return manual
+Return manual = Nilai saat ini - Total modal
+Return % = Return manual / Total modal
 ```
 
 ### Saham Data
@@ -1043,8 +1063,6 @@ Included assets:
 Cash
 Bank Account
 E-Wallet
-Investment Account
-Asset Account
 RDPU
 RDPT
 Emas
@@ -1053,13 +1071,32 @@ Saham
 Other Asset
 ```
 
+Aturan sumber nilai:
+
+```txt
+accounts.current_balance hanya dihitung untuk:
+- cash
+- bank_account
+- e_wallet
+
+investment_account dan asset_account tidak dijumlahkan langsung ke net worth.
+Nilai investasi/aset berasal dari assets.current_value agar nominal yang sama
+tidak terhitung dua kali.
+
+Contoh:
+Akun Bibit Rp10.000.000 + aset RDPU Bibit Rp10.000.000 tetap dihitung
+sebagai aset Rp10.000.000, bukan Rp20.000.000.
+```
+
 Included liabilities:
 
 ```txt
 Hutang
 Cicilan
-Debt account
 ```
+
+Liability account tidak dijumlahkan langsung. Nilai hutang berasal dari
+`liabilities.remaining_amount`.
 
 Dashboard portfolio menampilkan:
 
@@ -1068,6 +1105,8 @@ Net Worth
 Total Asset
 Total Liability
 Asset Allocation
+Jumlah aset tercatat
+Jumlah hutang aktif
 ```
 
 ---

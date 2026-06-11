@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "pnpm test:parser && pnpm test:insights",
+    "test": "pnpm test:parser && pnpm test:insights && pnpm test:portfolio",
     "test:parser": "tsc -p tsconfig.parser-test.json --outDir /private/tmp/uangku-parser-tests && node /private/tmp/uangku-parser-tests/tests/chat-parser.test.js",
-    "test:insights": "tsc -p tsconfig.parser-test.json --outDir /private/tmp/uangku-parser-tests && node /private/tmp/uangku-parser-tests/tests/insights-calculations.test.js"
+    "test:insights": "tsc -p tsconfig.parser-test.json --outDir /private/tmp/uangku-parser-tests && node /private/tmp/uangku-parser-tests/tests/insights-calculations.test.js",
+    "test:portfolio": "tsc -p tsconfig.parser-test.json --outDir /private/tmp/uangku-parser-tests && node /private/tmp/uangku-parser-tests/tests/portfolio-calculations.test.js"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

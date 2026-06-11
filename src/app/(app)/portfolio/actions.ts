@@ -372,7 +372,7 @@ export async function createLiability(
       amount: input.amount,
       remaining_amount: input.remainingAmount,
       due_date: input.dueDate,
-      reminder_enabled: false,
+      reminder_enabled: input.reminderEnabled,
       notes: input.notes,
     });
 
@@ -420,6 +420,7 @@ export async function updateLiability(
         amount: input.amount,
         remaining_amount: input.remainingAmount,
         due_date: input.dueDate,
+        reminder_enabled: input.reminderEnabled,
         notes: input.notes,
       })
       .eq("id", liabilityId)

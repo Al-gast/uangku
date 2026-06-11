@@ -1,13 +1,18 @@
 import { MoneyText } from "@/components/ui/money-text";
+import { formatCompactDateId } from "@/lib/format";
 
 export function PortfolioHeroCard({
   netWorth,
   totalAsset,
   totalLiability,
+  lastUpdatedAt,
+  staleAssetCount = 0,
 }: {
   netWorth: number;
   totalAsset: number;
   totalLiability: number;
+  lastUpdatedAt?: string | null;
+  staleAssetCount?: number;
 }) {
   return (
     <section className="rounded-card bg-accent p-6 text-accent-foreground shadow-lg">
@@ -22,6 +27,14 @@ export function PortfolioHeroCard({
       {netWorth < 0 && (
         <p className="mt-2 text-sm font-semibold opacity-90">
           Hutang melebihi total aset
+        </p>
+      )}
+      {lastUpdatedAt && (
+        <p className="mt-2 text-xs font-semibold opacity-80">
+          Diperbarui {formatCompactDateId(lastUpdatedAt)}
+          {staleAssetCount > 0
+            ? ` · ${staleAssetCount} aset perlu dicek ulang`
+            : ""}
         </p>
       )}
       <div className="mt-6 grid grid-cols-2 gap-3">

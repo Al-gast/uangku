@@ -1,5 +1,9 @@
 import Link from "next/link";
-import { MoneyText } from "@/components/ui/money-text";
+import { MoneyText, PrivateText } from "@/components/ui/money-text";
+import {
+  getAssetFreshnessStatus,
+  getAssetReturnSummary,
+} from "@/lib/portfolio/calculations";
 import type {
   PortfolioAccountItem,
   PortfolioAssetItem,
@@ -45,6 +49,49 @@ function getAssetSubtitle(
   return asset.platform ? `${quantity} · ${asset.platform}` : quantity;
 }
 
+function AssetReturnText({ asset }: { asset: PortfolioAssetItem }) {
+  const summary = getAssetReturnSummary(asset);
+
+  if (!summary) {
+    return null;
+  }
+
+  const sign =
+    summary.profit > 0 ? "+" : summary.profit < 0 ? "-" : "";
+  const tone =
+    summary.direction === "gain"
+      ? "text-income"
+      : summary.direction === "loss"
+        ? "text-expense"
+        : "text-muted";
+
+  return (
+    <p className={`mt-1 text-xs font-semibold ${tone}`}>
+      <MoneyText
+        value={Math.abs(summary.profit)}
+        sign={sign}
+      />{" "}
+      <PrivateText
+        value={`(${sign}${Math.abs(summary.returnPercent).toFixed(1)}%)`}
+      />
+    </p>
+  );
+}
+
+function AssetFreshnessText({ asset }: { asset: PortfolioAssetItem }) {
+  const freshness = getAssetFreshnessStatus(asset);
+
+  if (freshness.state !== "stale" || freshness.daysSinceUpdate === null) {
+    return null;
+  }
+
+  return (
+    <p className="mt-1 text-xs font-semibold text-expense">
+      Perlu update nilai · {freshness.daysSinceUpdate} hari lalu
+    </p>
+  );
+}
+
 function GroupCard({
   label,
   children,
@@ -80,6 +127,11 @@ export function AssetList({
           + Tambah
         </Link>
       </div>
+      <p className="mb-3 text-xs leading-5 text-muted">
+        Saldo cash, rekening, dan e-wallet dihitung otomatis. Nilai akun
+        investasi berasal dari aset yang kamu catat agar tidak terhitung dua
+        kali.
+      </p>
 
       <div className="space-y-4">
         {accounts.length > 0 && (
@@ -144,6 +196,8 @@ export function AssetList({
                         value={asset.currentValue}
                         className="text-sm font-bold"
                       />
+                      <AssetReturnText asset={asset} />
+                      <AssetFreshnessText asset={asset} />
                       <span className="text-sm text-muted">›</span>
                     </div>
                   </Link>

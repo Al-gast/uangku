@@ -9,17 +9,22 @@ export const portfolioAssetTypes = [
   "other_asset",
 ] as const;
 
+export const portfolioIncludedAccountTypes = [
+  "cash",
+  "bank_account",
+  "e_wallet",
+] as const;
+
 export type PortfolioAssetType = (typeof portfolioAssetTypes)[number];
-export type LiquidAccountType = Extract<
-  AccountType,
-  "cash" | "bank_account" | "e_wallet"
->;
+export type LiquidAccountType =
+  (typeof portfolioIncludedAccountTypes)[number] & AccountType;
 
 export type PortfolioAccountItem = {
   id: string;
   name: string;
   type: LiquidAccountType;
   currentBalance: number;
+  updatedAt: string | null;
 };
 
 export type PortfolioAssetItem = {
@@ -34,6 +39,7 @@ export type PortfolioAssetItem = {
   totalCost: number | null;
   currentValue: number;
   notes: string | null;
+  updatedAt: string | null;
 };
 
 export type PortfolioLiabilityItem = {
@@ -42,7 +48,9 @@ export type PortfolioLiabilityItem = {
   amount: number;
   remainingAmount: number;
   dueDate: string | null;
+  reminderEnabled: boolean;
   notes: string | null;
+  updatedAt: string | null;
 };
 
 export type AllocationKey =
@@ -59,6 +67,22 @@ export type AllocationSlice = {
   value: number;
   percentage: number;
   color: string;
+};
+
+export type PortfolioRecommendationSeverity =
+  | "danger"
+  | "warning"
+  | "info"
+  | "good";
+
+export type PortfolioRecommendation = {
+  id: string;
+  severity: PortfolioRecommendationSeverity;
+  title: string;
+  body: string;
+  privacyBody?: string;
+  actionHref?: string;
+  actionLabel?: string;
 };
 
 export type PortfolioTotals = {
@@ -78,5 +102,7 @@ export type PortfolioData = PortfolioTotals & {
 };
 
 export type PortfolioSummary = PortfolioTotals & {
+  assetCount: number;
+  liabilityCount: number;
   error: string | null;
 };

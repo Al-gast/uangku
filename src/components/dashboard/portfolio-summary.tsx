@@ -35,6 +35,10 @@ export function DashboardPortfolioSummary({
             value={summary.netWorth}
             className="mt-4 text-2xl font-extrabold"
           />
+          <p className="mt-2 text-sm text-muted">
+            {summary.assetCount} aset tercatat · {summary.liabilityCount}{" "}
+            hutang aktif
+          </p>
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div className="rounded-2xl bg-surface-muted p-3">
               <p className="text-xs text-muted">Total aset</p>
