@@ -7,14 +7,16 @@ import { MessageBubble } from "@/components/chat/message-bubble";
 import { TemplateChips } from "@/components/chat/template-chips";
 import { TransactionPreview } from "@/components/chat/transaction-preview";
 import { TypingIndicator } from "@/components/chat/typing-indicator";
-import { parseChatTransaction } from "@/lib/chat/parser";
+import { parseChatTransactions } from "@/lib/chat/parser";
 import type {
   ChatAccount,
   ChatAsset,
   ChatCategory,
   ChatLiability,
   ChatMessage,
+  ChatParseBatchFailure,
   ChatParseFailureReason,
+  ChatParsedDraft,
   ChatTransactionDraft,
 } from "@/lib/chat/types";
 
@@ -74,12 +76,19 @@ export function ChatView({
 }) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [preview, setPreview] = useState<ChatTransactionDraft | null>(null);
+  const [previewQueue, setPreviewQueue] = useState<ChatParsedDraft[]>([]);
+  const [previewBatchTotal, setPreviewBatchTotal] = useState(0);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isParsing, setIsParsing] = useState(false);
   const [isSaving, startSaving] = useTransition();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const contentEndRef = useRef<HTMLDivElement>(null);
+  const activePreview = previewQueue[0] ?? null;
+  const preview = activePreview?.draft ?? null;
+  const activePreviewIndex = previewBatchTotal
+    ? previewBatchTotal - previewQueue.length + 1
+    : 1;
 
   useEffect(() => {
     contentEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -87,21 +96,62 @@ export function ChatView({
 
   function selectTemplate(value: string) {
     setInput(value);
+    setSuggestions([]);
     window.requestAnimationFrame(() => inputRef.current?.focus());
+  }
+
+  function selectSuggestion(value: string) {
+    setInput(value);
+    setSuggestions([]);
+    window.requestAnimationFrame(() => inputRef.current?.focus());
+  }
+
+  function updateActivePreview(draft: ChatTransactionDraft) {
+    setPreviewQueue((current) =>
+      current.map((item, index) =>
+        index === 0 ? { ...item, draft } : item,
+      ),
+    );
+  }
+
+  function uniqueSuggestions(failures: ChatParseBatchFailure[]) {
+    return Array.from(
+      new Set(failures.flatMap((failure) => failure.suggestions)),
+    ).slice(0, 4);
+  }
+
+  function batchFailureMessage(failures: ChatParseBatchFailure[]) {
+    const firstFailure = failures[0];
+
+    if (!firstFailure) {
+      return "Aku belum paham transaksi ini 🤔";
+    }
+
+    if (failures.length === 1) {
+      return failureMessages[firstFailure.reason];
+    }
+
+    const samples = failures
+      .slice(0, 2)
+      .map((failure) => `"${failure.sourceText}"`)
+      .join(", ");
+
+    return `${failures.length} baris belum terbaca: ${samples}. Coba periksa formatnya ya.`;
   }
 
   function submitInput() {
     const rawText = input.trim();
 
-    if (!rawText || isParsing || preview || setupError) {
+    if (!rawText || isParsing || activePreview || setupError) {
       return;
     }
 
     setMessages((current) => [...current, message("user", rawText)]);
+    setSuggestions([]);
     setIsParsing(true);
 
     window.setTimeout(() => {
-      const result = parseChatTransaction(
+      const result = parseChatTransactions(
         rawText,
         categories,
         accounts,
@@ -110,51 +160,82 @@ export function ChatView({
       );
       setIsParsing(false);
 
-      if (result.success) {
-        setPreview(result.draft);
+      if (result.drafts.length > 0) {
+        setPreviewQueue(result.drafts);
+        setPreviewBatchTotal(result.drafts.length);
         setPreviewError(null);
+        setSuggestions(uniqueSuggestions(result.failures));
+        setInput("");
+
+        if (result.failures.length > 0) {
+          setMessages((current) => [
+            ...current,
+            message(
+              "assistant",
+              `${result.drafts.length} transaksi siap direview. ${batchFailureMessage(
+                result.failures,
+              )}`,
+              "error",
+            ),
+          ]);
+        }
+
         return;
       }
 
       setMessages((current) => [
         ...current,
-        message("assistant", failureMessages[result.reason], "error"),
+        message("assistant", batchFailureMessage(result.failures), "error"),
       ]);
+      setSuggestions(uniqueSuggestions(result.failures));
       setInput("");
       inputRef.current?.focus();
     }, 250);
   }
 
   function cancelPreview() {
-    setPreview(null);
+    if (previewQueue.length <= 1) {
+      setPreviewBatchTotal(0);
+    }
+
+    setPreviewQueue((current) => current.slice(1));
     setPreviewError(null);
+    setSuggestions([]);
     setInput("");
     window.requestAnimationFrame(() => inputRef.current?.focus());
   }
 
   function savePreview() {
-    if (!preview) {
+    if (!activePreview) {
       return;
     }
 
     setPreviewError(null);
     startSaving(async () => {
-      const result = await saveChatTransaction(preview);
+      const result = await saveChatTransaction(activePreview.draft);
 
       if (!result.success) {
         setPreviewError(result.error ?? "Transaksi belum berhasil disimpan.");
         return;
       }
 
+      const hasNextPreview = previewQueue.length > 1;
       setMessages((current) => [
         ...current,
         message(
           "assistant",
-          result.message ?? "Oke, transaksi sudah dicatat ✓",
+          hasNextPreview
+            ? `${result.message ?? "Oke, transaksi sudah dicatat ✓"} Preview berikutnya siap.`
+            : (result.message ?? "Oke, transaksi sudah dicatat ✓"),
           "success",
         ),
       ]);
-      setPreview(null);
+      if (!hasNextPreview) {
+        setPreviewBatchTotal(0);
+      }
+
+      setPreviewQueue((current) => current.slice(1));
+      setSuggestions([]);
       setInput("");
       window.requestAnimationFrame(() => inputRef.current?.focus());
     });
@@ -203,6 +284,27 @@ export function ChatView({
           {messages.map((chatMessage) => (
             <MessageBubble key={chatMessage.id} message={chatMessage} />
           ))}
+          {suggestions.length > 0 && !preview && (
+            <div className="flex justify-start">
+              <div className="max-w-[92%] rounded-card border border-border bg-surface p-4 shadow-card">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted">
+                  Coba format ini
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {suggestions.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      onClick={() => selectSuggestion(suggestion)}
+                      className="rounded-full border border-accent/30 bg-accent-soft px-3 py-2 text-xs font-bold text-accent-strong transition active:scale-[0.96]"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           {isParsing && <TypingIndicator />}
           {preview && (
             <TransactionPreview
@@ -213,7 +315,19 @@ export function ChatView({
               categories={categories}
               isSaving={isSaving}
               error={previewError}
-              onChange={setPreview}
+              title={
+                previewBatchTotal > 1
+                  ? `Preview ${activePreviewIndex} dari ${previewBatchTotal}`
+                  : "Preview Transaksi"
+              }
+              subtitle={
+                activePreview
+                  ? `Dari input: "${activePreview.sourceText}"`
+                  : undefined
+              }
+              cancelLabel={previewQueue.length > 1 ? "Lewati" : "Batal"}
+              saveLabel={previewQueue.length > 1 ? "Simpan & lanjut" : "Simpan ✓"}
+              onChange={updateActivePreview}
               onCancel={cancelPreview}
               onSave={savePreview}
             />

@@ -3,10 +3,12 @@
 import { ThemedSelect } from "@/components/ui/themed-select";
 import { ThemedDateInput } from "@/components/ui/themed-date-input";
 import { ThemedNumberInput } from "@/components/ui/themed-number-input";
+import { formatCompactDateId, formatIdr } from "@/lib/format";
 import type {
   ChatAccount,
   ChatAsset,
   ChatCategory,
+  ChatDraftWarning,
   ChatLiability,
   ChatTransactionDraft,
   ChatTransactionType,
@@ -33,6 +35,15 @@ const typeStyles = {
   debt_payment: "bg-debt/10 text-debt",
 } as const;
 
+const summaryTypeLabels: Record<ChatTransactionType, string> = {
+  income: "Pemasukan",
+  expense: "Pengeluaran",
+  transfer: "Transfer",
+  investment_buy: "Top up investasi",
+  investment_sell: "Tarik investasi",
+  debt_payment: "Bayar hutang",
+};
+
 type TransactionPreviewProps = {
   draft: ChatTransactionDraft;
   accounts: ChatAccount[];
@@ -41,6 +52,11 @@ type TransactionPreviewProps = {
   categories: ChatCategory[];
   isSaving: boolean;
   error: string | null;
+  title?: string;
+  subtitle?: string;
+  cancelLabel?: string;
+  saveLabel?: string;
+  savingLabel?: string;
   onChange: (draft: ChatTransactionDraft) => void;
   onCancel: () => void;
   onSave: () => void;
@@ -54,6 +70,11 @@ export function TransactionPreview({
   categories,
   isSaving,
   error,
+  title = "Preview Transaksi",
+  subtitle,
+  cancelLabel = "Batal",
+  saveLabel = "Simpan ✓",
+  savingLabel = "Menyimpan...",
   onChange,
   onCancel,
   onSave,
@@ -64,9 +85,19 @@ export function TransactionPreview({
   const isSimpleCashflow = draft.type === "income" || draft.type === "expense";
   const supportsAdminFee =
     draft.type === "transfer" || isInvestment || isDebtPayment;
+  const warnings = draft.warnings ?? [];
   const selectedAsset = assets.find((asset) => asset.id === draft.assetId);
   const selectedLiability = liabilities.find(
     (liability) => liability.id === draft.liabilityId,
+  );
+  const selectedAccount = accounts.find(
+    (account) => account.id === draft.accountId,
+  );
+  const selectedDestinationAccount = accounts.find(
+    (account) => account.id === draft.transferToAccountId,
+  );
+  const selectedCategory = categories.find(
+    (category) => category.id === draft.categoryId,
   );
   const availableCategories = categories.filter(
     (category) =>
@@ -106,6 +137,24 @@ export function TransactionPreview({
       )) &&
     !inlineError;
 
+  function updateDraft(
+    patch: Partial<ChatTransactionDraft>,
+    clearWarningTypes: ChatDraftWarning["type"][] = [],
+  ) {
+    const nextWarnings =
+      clearWarningTypes.length === 0
+        ? draft.warnings
+        : draft.warnings?.filter(
+            (warning) => !clearWarningTypes.includes(warning.type),
+          );
+
+    onChange({
+      ...draft,
+      ...patch,
+      warnings: nextWarnings,
+    });
+  }
+
   function changeType(type: ChatTransactionType) {
     const nextIsInvestment =
       type === "investment_buy" || type === "investment_sell";
@@ -120,8 +169,8 @@ export function TransactionPreview({
         ? accounts.find((account) => account.id !== draft.accountId)?.id ?? null
         : null;
 
-    onChange({
-      ...draft,
+    updateDraft(
+      {
       type,
       categoryId: firstCategory?.id ?? "",
       adminFeeAmount:
@@ -136,19 +185,77 @@ export function TransactionPreview({
       merchant:
         type === "income" || type === "expense" ? draft.merchant : null,
       notes: type === "income" || type === "expense" ? draft.notes : null,
-    });
+      },
+      [
+        "category_alias",
+        "date_default",
+        "default_account",
+        "detail_extracted",
+      ],
+    );
+  }
+
+  function previewSummary() {
+    const amount = formatIdr(draft.amount || 0);
+    const date = formatCompactDateId(
+      `${draft.transactionDate}T12:00:00+07:00`,
+    );
+
+    if (draft.type === "transfer") {
+      return `${summaryTypeLabels[draft.type]} ${amount} dari ${
+        selectedAccount?.name ?? "akun"
+      } ke ${selectedDestinationAccount?.name ?? "akun tujuan"} pada ${date}.`;
+    }
+
+    if (isInvestment) {
+      return `${summaryTypeLabels[draft.type]} ${amount} ${
+        draft.type === "investment_buy" ? "ke" : "dari"
+      } ${selectedAsset?.name ?? "aset"} ${
+        draft.type === "investment_buy" ? "dari" : "ke"
+      } ${selectedAccount?.name ?? "akun"} pada ${date}.`;
+    }
+
+    if (isDebtPayment) {
+      return `${summaryTypeLabels[draft.type]} ${amount} untuk ${
+        selectedLiability?.name ?? "hutang"
+      } dari ${selectedAccount?.name ?? "akun"} pada ${date}.`;
+    }
+
+    return `${summaryTypeLabels[draft.type]} ${
+      selectedCategory?.name ?? "kategori"
+    } ${amount} dari ${selectedAccount?.name ?? "akun"} pada ${date}.`;
   }
 
   return (
     <section className="max-w-[92%] rounded-card border border-accent/25 bg-surface p-5 shadow-card">
       <p className="text-xs font-bold uppercase tracking-wider text-muted">
-        Preview Transaksi
+        {title}
       </p>
+      {subtitle && (
+        <p className="mt-1 text-xs leading-5 text-muted">{subtitle}</p>
+      )}
       <span
         className={`mt-3 inline-flex rounded-full px-2.5 py-1 text-[0.65rem] font-bold ${typeStyles[draft.type]}`}
       >
         {typeOptions.find((option) => option.value === draft.type)?.label}
       </span>
+
+      <p className="mt-3 rounded-control bg-surface-muted p-3 text-sm font-semibold leading-6 text-foreground">
+        {previewSummary()}
+      </p>
+
+      {warnings.length > 0 && (
+        <div className="mt-4 space-y-2 rounded-control border border-accent/20 bg-accent-soft p-3">
+          {warnings.map((warning) => (
+            <p
+              key={`${warning.type}-${warning.message}`}
+              className="text-xs leading-5 text-accent-strong"
+            >
+              {warning.message}
+            </p>
+          ))}
+        </div>
+      )}
 
       <div className="mt-4 space-y-4">
         <fieldset>
@@ -184,7 +291,7 @@ export function TransactionPreview({
           surface="background"
           textSize="lg"
           onChange={(value) =>
-            onChange({ ...draft, amount: Number(value) })
+            updateDraft({ amount: Number(value) })
           }
         />
 
@@ -202,8 +309,7 @@ export function TransactionPreview({
             placeholder="0"
             surface="background"
             onChange={(value) =>
-              onChange({
-                ...draft,
+              updateDraft({
                 adminFeeAmount: value === "" ? 0 : Number(value),
               })
             }
@@ -214,7 +320,9 @@ export function TransactionPreview({
           <ThemedSelect
             label="Kategori"
             value={draft.categoryId}
-            onChange={(categoryId) => onChange({ ...draft, categoryId })}
+            onChange={(categoryId) =>
+              updateDraft({ categoryId }, ["category_alias"])
+            }
             options={availableCategories.map((category) => ({
               value: category.id,
               label: category.name,
@@ -232,10 +340,10 @@ export function TransactionPreview({
               maxLength={120}
               placeholder="cth: ayam goreng, parkir, cilok"
               onChange={(event) =>
-                onChange({
-                  ...draft,
-                  merchant: event.target.value.trimStart() || null,
-                })
+                updateDraft(
+                  { merchant: event.target.value.trimStart() || null },
+                  ["detail_extracted"],
+                )
               }
               className="min-h-12 w-full rounded-control border border-border bg-background px-4 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
             />
@@ -259,11 +367,13 @@ export function TransactionPreview({
                 ? (accounts.find((account) => account.id !== accountId)?.id ??
                   null)
                 : draft.transferToAccountId;
-            onChange({
-              ...draft,
+            updateDraft(
+              {
               accountId,
               transferToAccountId: destinationAccountId,
-            });
+              },
+              ["default_account"],
+            );
           }}
           options={accounts.map((account) => ({
             value: account.id,
@@ -279,8 +389,7 @@ export function TransactionPreview({
             value={draft.assetId ?? ""}
             placeholder="Pilih aset investasi"
             onChange={(assetId) =>
-              onChange({
-                ...draft,
+              updateDraft({
                 assetId: assetId || null,
               })
             }
@@ -297,8 +406,7 @@ export function TransactionPreview({
             value={draft.liabilityId ?? ""}
             placeholder="Pilih hutang"
             onChange={(liabilityId) =>
-              onChange({
-                ...draft,
+              updateDraft({
                 liabilityId: liabilityId || null,
               })
             }
@@ -318,8 +426,7 @@ export function TransactionPreview({
             value={draft.transferToAccountId ?? ""}
             placeholder="Pilih akun tujuan"
             onChange={(transferToAccountId) =>
-              onChange({
-                ...draft,
+              updateDraft({
                 transferToAccountId: transferToAccountId || null,
               })
             }
@@ -337,7 +444,7 @@ export function TransactionPreview({
           value={draft.transactionDate}
           surface="background"
           onChange={(transactionDate) =>
-            onChange({ ...draft, transactionDate })
+            updateDraft({ transactionDate }, ["date_default"])
           }
         />
       </div>
@@ -355,7 +462,7 @@ export function TransactionPreview({
           onClick={onCancel}
           className="min-h-12 rounded-control border border-border bg-surface text-sm font-bold text-muted transition active:scale-[0.98] disabled:opacity-60"
         >
-          Batal
+          {cancelLabel}
         </button>
         <button
           type="button"
@@ -363,7 +470,7 @@ export function TransactionPreview({
           onClick={onSave}
           className="min-h-12 rounded-control bg-accent text-sm font-bold text-accent-foreground transition hover:bg-accent-strong active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isSaving ? "Menyimpan..." : "Simpan ✓"}
+          {isSaving ? savingLabel : saveLabel}
         </button>
       </div>
     </section>

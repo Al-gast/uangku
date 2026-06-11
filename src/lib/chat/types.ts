@@ -56,7 +56,26 @@ export type ChatTransactionDraft = {
   notes: string | null;
   transactionDate: string;
   confidence: number;
+  warnings?: ChatDraftWarning[];
 };
+
+export type ChatDraftWarning =
+  | {
+      type: "default_account";
+      message: string;
+    }
+  | {
+      type: "category_alias";
+      message: string;
+    }
+  | {
+      type: "date_default";
+      message: string;
+    }
+  | {
+      type: "detail_extracted";
+      message: string;
+    };
 
 export type ChatParseFailureReason =
   | "no_amount"
@@ -86,6 +105,24 @@ export type ChatParseResult =
       reason: ChatParseFailureReason;
       suggestions: string[];
     };
+
+export type ChatParsedDraft = {
+  id: string;
+  sourceText: string;
+  draft: ChatTransactionDraft;
+};
+
+export type ChatParseBatchFailure = {
+  id: string;
+  sourceText: string;
+  reason: ChatParseFailureReason;
+  suggestions: string[];
+};
+
+export type ChatParseBatchResult = {
+  drafts: ChatParsedDraft[];
+  failures: ChatParseBatchFailure[];
+};
 
 export type ChatMessage = {
   id: string;

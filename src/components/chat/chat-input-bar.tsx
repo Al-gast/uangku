@@ -1,9 +1,9 @@
 "use client";
 
-import type { FormEvent, RefObject } from "react";
+import type { FormEvent, KeyboardEvent, RefObject } from "react";
 
 type ChatInputBarProps = {
-  inputRef: RefObject<HTMLInputElement | null>;
+  inputRef: RefObject<HTMLTextAreaElement | null>;
   value: string;
   disabled: boolean;
   onChange: (value: string) => void;
@@ -22,19 +22,28 @@ export function ChatInputBar({
     onSubmit();
   }
 
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      onSubmit();
+    }
+  }
+
   return (
     <form
       onSubmit={submit}
       className="flex gap-2 border-t border-border bg-surface py-3 shadow-[0_-4px_16px_var(--overlay)]"
     >
-      <input
+      <textarea
         ref={inputRef}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onKeyDown={handleKeyDown}
         disabled={disabled}
         autoComplete="off"
-        placeholder={'Ketik transaksi, cth: "makan 25k"'}
-        className="min-h-12 min-w-0 flex-1 rounded-control border border-border bg-background px-4 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft disabled:opacity-60"
+        rows={1}
+        placeholder={'Ketik transaksi, cth: "makan 25k; kopi 18rb"'}
+        className="max-h-32 min-h-12 min-w-0 flex-1 resize-none rounded-control border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft disabled:opacity-60"
       />
       <button
         type="submit"

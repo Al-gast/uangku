@@ -1,5 +1,8 @@
 import { strict as assert } from "node:assert";
-import { parseChatTransaction } from "../src/lib/chat/parser";
+import {
+  parseChatTransaction,
+  parseChatTransactions,
+} from "../src/lib/chat/parser";
 import type {
   ChatAccount,
   ChatAsset,
@@ -98,6 +101,7 @@ type ExpectedDraft = {
   assetId?: string | null;
   liabilityId?: string | null;
   merchant?: string | null;
+  transactionDate?: string;
 };
 
 function parse(text: string) {
@@ -169,6 +173,14 @@ function expectDraft(text: string, expected: ExpectedDraft) {
   if (expected.merchant !== undefined) {
     assert.equal(result.draft.merchant, expected.merchant, `${text} merchant`);
   }
+
+  if (expected.transactionDate !== undefined) {
+    assert.equal(
+      result.draft.transactionDate,
+      expected.transactionDate,
+      `${text} transaction date`,
+    );
+  }
 }
 
 function expectFailure(text: string, reason: string) {
@@ -187,6 +199,41 @@ function expectFailure(text: string, reason: string) {
   assert.equal(result.reason, reason, `${text} failure reason`);
 }
 
+function expectBatch(text: string, draftCount: number, failureCount: number) {
+  const result = parseChatTransactions(
+    text,
+    categories,
+    accounts,
+    assets,
+    liabilities,
+    now,
+  );
+
+  assert.equal(result.drafts.length, draftCount, `${text} draft count`);
+  assert.equal(result.failures.length, failureCount, `${text} failure count`);
+
+  return result;
+}
+
+function expectWarning(text: string, warningType: string) {
+  const result = parse(text);
+
+  assert.equal(
+    result.success,
+    true,
+    `${text} should parse successfully: ${JSON.stringify(result)}`,
+  );
+
+  if (!result.success) {
+    throw new Error("Unreachable");
+  }
+
+  assert.ok(
+    result.draft.warnings?.some((warning) => warning.type === warningType),
+    `${text} should include ${warningType} warning`,
+  );
+}
+
 function runParserRegressionTests() {
   expectDraft("makan 25k", {
     type: "expense",
@@ -197,17 +244,50 @@ function runParserRegressionTests() {
     assetId: null,
     merchant: null,
   });
+  expectWarning("makan 25k", "default_account");
+  expectWarning("makan 25k", "date_default");
   expectDraft("makan ayam goreng 20k", {
     type: "expense",
     amount: 20_000,
     categoryId: "category-makan",
     merchant: "ayam goreng",
   });
+  expectDraft("makan tanggal 5 25k", {
+    type: "expense",
+    amount: 25_000,
+    categoryId: "category-makan",
+    transactionDate: "2026-06-05",
+  });
+  expectDraft("makan 25k 2 hari lalu", {
+    type: "expense",
+    amount: 25_000,
+    categoryId: "category-makan",
+    transactionDate: "2026-06-05",
+  });
+  expectDraft("makan 25k minggu lalu", {
+    type: "expense",
+    amount: 25_000,
+    categoryId: "category-makan",
+    transactionDate: "2026-05-31",
+  });
+  expectDraft("makan 25k 5 juni", {
+    type: "expense",
+    amount: 25_000,
+    categoryId: "category-makan",
+    transactionDate: "2026-06-05",
+  });
+  expectDraft("makan 25k tadi malam", {
+    type: "expense",
+    amount: 25_000,
+    categoryId: "category-makan",
+    transactionDate: "2026-06-07",
+  });
   expectDraft("gofood ayam goreng 20k", {
     type: "expense",
     amount: 20_000,
     categoryId: "category-makan",
   });
+  expectWarning("gofood ayam goreng 20k", "category_alias");
   expectDraft("jajan cilok 5k", {
     type: "expense",
     amount: 5_000,
@@ -472,6 +552,24 @@ function runParserRegressionTests() {
     "liability_not_found",
   );
   expectFailure("xyz 25k", "unknown_category");
+
+  const multilineBatch = expectBatch(
+    "makan 25k\nkopi 18rb dari GoPay\nxyz 10k",
+    2,
+    1,
+  );
+  assert.equal(multilineBatch.drafts[0].sourceText, "makan 25k");
+  assert.equal(multilineBatch.drafts[0].draft.amount, 25_000);
+  assert.equal(multilineBatch.drafts[1].draft.accountId, "account-gopay");
+  assert.equal(multilineBatch.failures[0].reason, "unknown_category");
+
+  const semicolonBatch = expectBatch(
+    "gaji 4.7jt; transfer BCA ke GoPay 100rb",
+    2,
+    0,
+  );
+  assert.equal(semicolonBatch.drafts[0].draft.type, "income");
+  assert.equal(semicolonBatch.drafts[1].draft.type, "transfer");
 }
 
 runParserRegressionTests();

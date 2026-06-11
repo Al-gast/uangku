@@ -2,6 +2,8 @@ import type {
   ChatAccount,
   ChatAsset,
   ChatCategory,
+  ChatParseBatchResult,
+  ChatDraftWarning,
   ChatLiability,
   ChatParseFailureReason,
   ChatParseResult,
@@ -57,6 +59,43 @@ type AmountMatch = {
 type AdminFeeMatch = AmountMatch & {
   clause: string;
 };
+
+type DateMatch = {
+  date: string;
+  clause: string;
+};
+
+type CategoryMatch = {
+  category: ChatCategory;
+  source: "name" | "alias";
+};
+
+const monthAliases = new Map<string, number>([
+  ["januari", 1],
+  ["jan", 1],
+  ["februari", 2],
+  ["feb", 2],
+  ["maret", 3],
+  ["mar", 3],
+  ["april", 4],
+  ["apr", 4],
+  ["mei", 5],
+  ["juni", 6],
+  ["jun", 6],
+  ["juli", 7],
+  ["jul", 7],
+  ["agustus", 8],
+  ["agu", 8],
+  ["ags", 8],
+  ["september", 9],
+  ["sep", 9],
+  ["oktober", 10],
+  ["okt", 10],
+  ["november", 11],
+  ["nov", 11],
+  ["desember", 12],
+  ["des", 12],
+]);
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -144,21 +183,161 @@ function extractAdminFee(input: string): AdminFeeMatch | null {
   return {
     amount,
     raw: `${rawNumber}${suffix}`,
-    clause: match[0],
+    clause: match[0].trim(),
   };
 }
 
-function dateForInput(input: string, now: Date) {
-  const value = input.includes("kemarin")
-    ? new Date(now.getTime() - 24 * 60 * 60 * 1000)
-    : now;
-
+function formatJakartaDate(value: Date) {
   return new Intl.DateTimeFormat("en-CA", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
     timeZone: "Asia/Jakarta",
   }).format(value);
+}
+
+function getJakartaParts(now: Date) {
+  const date = formatJakartaDate(now);
+  const [year, month, day] = date.split("-").map(Number);
+  return { date, year, month, day };
+}
+
+function shiftJakartaDate(date: string, days: number) {
+  const value = new Date(`${date}T00:00:00+07:00`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return formatJakartaDate(value);
+}
+
+function addMonths(year: number, month: number, delta: number) {
+  const value = new Date(Date.UTC(year, month - 1 + delta, 1));
+  return {
+    year: value.getUTCFullYear(),
+    month: value.getUTCMonth() + 1,
+  };
+}
+
+function buildDate(year: number, month: number, day: number) {
+  const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(
+    2,
+    "0",
+  )}`;
+  const value = new Date(`${date}T00:00:00+07:00`);
+  const normalized = formatJakartaDate(value);
+
+  return normalized === date ? date : null;
+}
+
+function dateFromDayOfMonth(day: number, now: Date) {
+  const today = getJakartaParts(now);
+  let date = buildDate(today.year, today.month, day);
+
+  if (!date) {
+    return null;
+  }
+
+  if (date > today.date) {
+    const previousMonth = addMonths(today.year, today.month, -1);
+    date = buildDate(previousMonth.year, previousMonth.month, day);
+  }
+
+  return date;
+}
+
+function extractDate(input: string, now: Date): DateMatch | null {
+  const today = getJakartaParts(now);
+  const relativeMatch = input.match(
+    /\b(hari ini|tadi pagi|tadi siang|tadi malam|kemarin|minggu lalu)\b/i,
+  );
+
+  if (relativeMatch) {
+    const clause = relativeMatch[1];
+    const date =
+      clause === "kemarin"
+        ? shiftJakartaDate(today.date, -1)
+        : clause === "minggu lalu"
+          ? shiftJakartaDate(today.date, -7)
+          : today.date;
+
+    return { date, clause };
+  }
+
+  const daysAgoMatch = input.match(/\b(\d{1,2})\s+hari\s+lalu\b/i);
+
+  if (daysAgoMatch) {
+    return {
+      date: shiftJakartaDate(today.date, -Number(daysAgoMatch[1])),
+      clause: daysAgoMatch[0].trim(),
+    };
+  }
+
+  const dayOfMonthMatch = input.match(/\btanggal\s+(\d{1,2})\b/i);
+
+  if (dayOfMonthMatch) {
+    const date = dateFromDayOfMonth(Number(dayOfMonthMatch[1]), now);
+
+    if (date) {
+      return { date, clause: dayOfMonthMatch[0].trim() };
+    }
+  }
+
+  const monthNamesPattern = Array.from(monthAliases.keys()).join("|");
+  const explicitDateMatch = input.match(
+    new RegExp(`\\b(\\d{1,2})\\s+(${monthNamesPattern})(?:\\s+(\\d{4}))?\\b`, "i"),
+  );
+
+  if (explicitDateMatch) {
+    const day = Number(explicitDateMatch[1]);
+    const month = monthAliases.get(explicitDateMatch[2]);
+    const year = explicitDateMatch[3]
+      ? Number(explicitDateMatch[3])
+      : today.year;
+    const date = month ? buildDate(year, month, day) : null;
+
+    if (date) {
+      return { date, clause: explicitDateMatch[0].trim() };
+    }
+  }
+
+  return null;
+}
+
+function removeClause(input: string, clause: string) {
+  return input
+    .replace(
+      new RegExp(`(^|\\s)${escapeRegExp(clause)}(?=\\s|$)`, "iu"),
+      " ",
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function dateDefaultWarning(dateMatch: DateMatch | null): ChatDraftWarning | null {
+  return dateMatch
+    ? null
+    : {
+        type: "date_default",
+        message: "Tanggal diasumsikan hari ini.",
+      };
+}
+
+function defaultAccountWarning(
+  account: ChatAccount,
+  accounts: ChatAccount[],
+): ChatDraftWarning | null {
+  return accounts.length > 1
+    ? {
+        type: "default_account",
+        message: `Akun tidak disebutkan, jadi aku pakai ${account.name}.`,
+      }
+    : null;
+}
+
+function compactWarnings(
+  items: Array<ChatDraftWarning | null>,
+): ChatDraftWarning[] {
+  return items.filter(
+    (item): item is ChatDraftWarning => item !== null,
+  );
 }
 
 function sortedAccountMatches(input: string, accounts: ChatAccount[]) {
@@ -260,6 +439,17 @@ function matchCategory(
   categories: ChatCategory[],
   transactionType?: ChatCategory["transactionType"],
 ) {
+  return (
+    matchCategoryWithSource(input, categories, transactionType)?.category ??
+    null
+  );
+}
+
+function matchCategoryWithSource(
+  input: string,
+  categories: ChatCategory[],
+  transactionType?: ChatCategory["transactionType"],
+): CategoryMatch | null {
   const candidates = categories
     .filter(
       (category) =>
@@ -277,25 +467,38 @@ function matchCategory(
     .split(" ")
     .filter((word, index) => index > 0 || !FILLER_WORDS.has(word))
     .join(" ");
-
-  return (
-    candidates.find(
-      ({ name }) =>
-        input.startsWith(name) || withoutLeadingFiller.startsWith(name),
-    )?.category ??
-    candidates.find(({ aliases }) =>
-      aliases.some(
-        (alias) =>
-          input.startsWith(alias) ||
-          withoutLeadingFiller.startsWith(alias),
-      ),
-    )?.category ??
-    candidates.find(({ name }) => input.includes(name))?.category ??
-    candidates.find(({ aliases }) =>
-      aliases.some((alias) => input.includes(alias)),
-    )?.category ??
-    null
+  const startsWithName = candidates.find(
+    ({ name }) =>
+      input.startsWith(name) || withoutLeadingFiller.startsWith(name),
   );
+  const startsWithAlias = candidates.find(({ aliases }) =>
+    aliases.some(
+      (alias) =>
+        input.startsWith(alias) || withoutLeadingFiller.startsWith(alias),
+    ),
+  );
+  const includesName = candidates.find(({ name }) => input.includes(name));
+  const includesAlias = candidates.find(({ aliases }) =>
+    aliases.some((alias) => input.includes(alias)),
+  );
+
+  if (startsWithName) {
+    return { category: startsWithName.category, source: "name" };
+  }
+
+  if (startsWithAlias) {
+    return { category: startsWithAlias.category, source: "alias" };
+  }
+
+  if (includesName) {
+    return { category: includesName.category, source: "name" };
+  }
+
+  if (includesAlias) {
+    return { category: includesAlias.category, source: "alias" };
+  }
+
+  return null;
 }
 
 function hasContext(
@@ -310,7 +513,6 @@ function hasContext(
   }
 
   const words = remaining
-    .replace(/\b(hari ini|kemarin)\b/g, " ")
     .split(" ")
     .filter((word) => word && !FILLER_WORDS.has(word));
 
@@ -433,10 +635,14 @@ export function parseChatTransaction(
     return fail("unsupported", ["makan 25k", "gaji 4.7jt"]);
   }
 
-  const adminFeeMatch = extractAdminFee(input);
-  const inputWithoutAdminFee = adminFeeMatch
-    ? input.replace(adminFeeMatch.clause, " ").replace(/\s+/g, " ").trim()
+  const dateMatch = extractDate(input, now);
+  const inputWithoutDate = dateMatch
+    ? removeClause(input, dateMatch.clause)
     : input;
+  const adminFeeMatch = extractAdminFee(inputWithoutDate);
+  const inputWithoutAdminFee = adminFeeMatch
+    ? removeClause(inputWithoutDate, adminFeeMatch.clause)
+    : inputWithoutDate;
   const amountMatch = extractAmount(inputWithoutAdminFee);
 
   if (!amountMatch) {
@@ -471,7 +677,7 @@ export function parseChatTransaction(
   }
 
   const adminFeeAmount = adminFeeMatch?.amount ?? 0;
-  const transactionDate = dateForInput(input, now);
+  const transactionDate = dateMatch?.date ?? formatJakartaDate(now);
   const fallbackAccount = defaultAccount(accounts);
   const matchedAsset = matchAsset(input, assets);
   const matchedLiability = matchLiability(input, liabilities);
@@ -487,10 +693,10 @@ export function parseChatTransaction(
     const debtCategory =
       categories.find((category) => category.transactionType === "debt") ??
       null;
-    const account =
+    const matchedAccount =
       findAccountAfterCue(input, "dari ", accounts) ??
-      sortedAccountMatches(input, accounts)[0]?.account ??
-      fallbackAccount;
+      sortedAccountMatches(input, accounts)[0]?.account;
+    const account = matchedAccount ?? fallbackAccount;
 
     if (!matchedLiability) {
       return fail("liability_not_found", [
@@ -523,7 +729,11 @@ export function parseChatTransaction(
         merchant: null,
         notes: null,
         transactionDate,
-        confidence: 0.91,
+        confidence: matchedAccount ? 0.91 : 0.84,
+        warnings: compactWarnings([
+          dateDefaultWarning(dateMatch),
+          matchedAccount ? null : defaultAccountWarning(account, accounts),
+        ]),
       },
     };
   }
@@ -545,15 +755,13 @@ export function parseChatTransaction(
       return fail("unknown_category", ["Gunakan kategori Investasi."]);
     }
 
-    const account =
-      isSellIntent
-        ? findAccountAfterCue(input, "ke ", accounts) ??
-          findAccountAfterCue(input, "masuk ", accounts) ??
-          sortedAccountMatches(input, accounts)[0]?.account ??
-          fallbackAccount
-        : findAccountAfterCue(input, "dari ", accounts) ??
-          sortedAccountMatches(input, accounts)[0]?.account ??
-          fallbackAccount;
+    const matchedAccount = isSellIntent
+      ? findAccountAfterCue(input, "ke ", accounts) ??
+        findAccountAfterCue(input, "masuk ", accounts) ??
+        sortedAccountMatches(input, accounts)[0]?.account
+      : findAccountAfterCue(input, "dari ", accounts) ??
+        sortedAccountMatches(input, accounts)[0]?.account;
+    const account = matchedAccount ?? fallbackAccount;
 
     if (!account) {
       return fail("account_not_found", [
@@ -581,7 +789,11 @@ export function parseChatTransaction(
         merchant: null,
         notes: null,
         transactionDate,
-        confidence: 0.93,
+        confidence: matchedAccount ? 0.93 : 0.86,
+        warnings: compactWarnings([
+          dateDefaultWarning(dateMatch),
+          matchedAccount ? null : defaultAccountWarning(account, accounts),
+        ]),
       },
     };
   }
@@ -626,6 +838,7 @@ export function parseChatTransaction(
         notes: null,
         transactionDate,
         confidence: 0.98,
+        warnings: compactWarnings([dateDefaultWarning(dateMatch)]),
       },
     };
   }
@@ -633,9 +846,13 @@ export function parseChatTransaction(
   const explicitIncome = INCOME_KEYWORDS.some((keyword) =>
     input.includes(keyword),
   );
-  const category =
-    matchCategory(input, categories, explicitIncome ? "income" : undefined) ??
-    null;
+  const categoryMatch =
+    matchCategoryWithSource(
+      input,
+      categories,
+      explicitIncome ? "income" : undefined,
+    ) ?? null;
+  const category = categoryMatch?.category ?? null;
 
   if (!category) {
     return fail("unknown_category", [
@@ -647,10 +864,11 @@ export function parseChatTransaction(
     explicitIncome || category.transactionType === "income"
       ? "income"
       : "expense";
-  const typedCategory =
+  const typedCategoryMatch =
     category.transactionType === type
-      ? category
-      : matchCategory(input, categories, type);
+      ? categoryMatch
+      : matchCategoryWithSource(input, categories, type);
+  const typedCategory = typedCategoryMatch?.category ?? null;
 
   if (!typedCategory) {
     return fail("unknown_category", [
@@ -673,6 +891,13 @@ export function parseChatTransaction(
     ]);
   }
 
+  const merchant = extractSimpleDetail({
+    input: inputWithoutAdminFee,
+    amountRaw: amountMatch.raw,
+    category: typedCategory,
+    accounts,
+  });
+
   return {
     success: true,
     draft: {
@@ -684,15 +909,74 @@ export function parseChatTransaction(
       transferToAccountId: null,
       assetId: null,
       liabilityId: null,
-      merchant: extractSimpleDetail({
-        input: inputWithoutAdminFee,
-        amountRaw: amountMatch.raw,
-        category: typedCategory,
-        accounts,
-      }),
+      merchant,
       notes: null,
       transactionDate,
       confidence: mentionedAccount ? 0.96 : 0.88,
+      warnings: compactWarnings([
+        dateDefaultWarning(dateMatch),
+        mentionedAccount ? null : defaultAccountWarning(account, accounts),
+        typedCategoryMatch?.source === "alias"
+          ? {
+              type: "category_alias",
+              message: `Kategori dikenali dari alias sebagai ${typedCategory.name}.`,
+            }
+          : null,
+        merchant
+          ? {
+              type: "detail_extracted",
+              message: `Detail terisi otomatis: ${merchant}.`,
+            }
+          : null,
+      ]),
     },
   };
+}
+
+function splitBatchInput(rawText: string) {
+  return rawText
+    .split(/\r?\n|;/g)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+export function parseChatTransactions(
+  rawText: string,
+  categories: ChatCategory[],
+  accounts: ChatAccount[],
+  assets: ChatAsset[] = [],
+  liabilities: ChatLiability[] = [],
+  now = new Date(),
+): ChatParseBatchResult {
+  return splitBatchInput(rawText).reduce<ChatParseBatchResult>(
+    (result, sourceText, index) => {
+      const parsed = parseChatTransaction(
+        sourceText,
+        categories,
+        accounts,
+        assets,
+        liabilities,
+        now,
+      );
+      const id = `draft-${index + 1}`;
+
+      if (parsed.success) {
+        result.drafts.push({
+          id,
+          sourceText,
+          draft: parsed.draft,
+        });
+      } else {
+        result.failures.push({
+          id,
+          sourceText,
+          reason: parsed.reason,
+          suggestions: parsed.suggestions,
+        });
+      }
+
+      return result;
+    },
+    { drafts: [], failures: [] },
+  );
 }
