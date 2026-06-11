@@ -4,6 +4,7 @@ import { CashflowFilterPanel } from "@/components/cashflow/filter-panel";
 import { TransactionList } from "@/components/cashflow/transaction-list";
 import { PageIntro } from "@/components/ui/page-intro";
 import {
+  cashflowTransactionLimit,
   countActiveCashflowFilters,
   getCashflowFilterOptions,
   getCashflowTransactions,
@@ -93,7 +94,9 @@ export default async function CashflowPage({
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-bold">Transaksi terbaru</h2>
           <span className="text-xs font-semibold text-muted">
-            {result.transactions.length} transaksi
+            {result.transactions.length >= cashflowTransactionLimit
+              ? `${cashflowTransactionLimit} terbaru`
+              : `${result.transactions.length} transaksi`}
           </span>
         </div>
         <TransactionList

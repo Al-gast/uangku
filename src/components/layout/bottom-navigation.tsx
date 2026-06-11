@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link, { useLinkStatus } from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { Icon, type IconName } from "@/components/ui/icons";
 
 const items: Array<{ href: string; label: string; icon: IconName }> = [
@@ -12,8 +13,42 @@ const items: Array<{ href: string; label: string; icon: IconName }> = [
   { href: "/settings", label: "Settings", icon: "settings" },
 ];
 
+function NavPendingHint() {
+  const { pending } = useLinkStatus();
+
+  return (
+    <span
+      aria-hidden
+      className={`absolute right-2 top-2 size-1.5 rounded-full bg-current transition-opacity ${
+        pending ? "opacity-80" : "opacity-0"
+      }`}
+    />
+  );
+}
+
 export function BottomNavigation() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    let cancelled = false;
+    const timeout = window.setTimeout(() => {
+      if (cancelled) {
+        return;
+      }
+
+      for (const item of items) {
+        if (item.href !== pathname) {
+          router.prefetch(item.href);
+        }
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [pathname, router]);
 
   return (
     <nav
@@ -29,13 +64,18 @@ export function BottomNavigation() {
             <li key={item.href}>
               <Link
                 href={item.href}
+                prefetch
                 aria-current={isActive ? "page" : undefined}
-                className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl px-1 text-[0.65rem] font-semibold transition-colors ${
+                onPointerEnter={() => router.prefetch(item.href)}
+                onPointerDown={() => router.prefetch(item.href)}
+                onFocus={() => router.prefetch(item.href)}
+                className={`relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl px-1 text-[0.65rem] font-semibold transition-colors ${
                   isActive
                     ? "bg-accent-soft text-accent-strong"
                     : "text-muted hover:bg-surface-muted hover:text-foreground"
                 }`}
               >
+                <NavPendingHint />
                 <Icon name={item.icon} className="size-[1.35rem]" />
                 <span>{item.label}</span>
               </Link>

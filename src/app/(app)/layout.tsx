@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { getAppUserSettings } from "@/lib/settings/data";
-import { createClient } from "@/lib/supabase/server";
 
 export default async function MainAppLayout({
   children,
@@ -11,13 +10,6 @@ export default async function MainAppLayout({
   children: ReactNode;
 }) {
   if (!hasSupabaseEnv()) {
-    redirect("/login");
-  }
-
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-
-  if (!data?.claims) {
     redirect("/login");
   }
 

@@ -6,6 +6,7 @@ const protectedRoutes = [
   "/dashboard",
   "/cashflow",
   "/chat",
+  "/insights",
   "/portfolio",
   "/settings",
   "/onboarding",

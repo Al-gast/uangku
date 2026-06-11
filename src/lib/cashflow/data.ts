@@ -46,6 +46,7 @@ const manualTransactionTypes: ManualTransactionType[] = [
   "investment_sell",
   "debt_payment",
 ];
+export const cashflowTransactionLimit = 80;
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -448,7 +449,7 @@ export async function getCashflowTransactions(filters?: CashflowFilters) {
       .lt("transaction_date", dateBounds.end);
   }
 
-  const { data, error } = await query;
+  const { data, error } = await query.limit(cashflowTransactionLimit);
 
   if (error) {
     return {

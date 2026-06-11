@@ -64,18 +64,59 @@ export async function getPortfolioData(): Promise<PortfolioData> {
 }
 
 export async function getPortfolioSummary(): Promise<PortfolioSummary> {
-  const data = await getPortfolioData();
+  const supabase = await createClient();
+  const [accountResult, assetResult, liabilityResult] = await Promise.all([
+    supabase
+      .from("accounts")
+      .select("current_balance")
+      .eq("is_active", true)
+      .in("type", [...portfolioIncludedAccountTypes]),
+    supabase
+      .from("assets")
+      .select("current_value")
+      .in("type", ["rdpu", "rdpt", "gold", "crypto", "stock", "other_asset"]),
+    supabase.from("liabilities").select("remaining_amount"),
+  ]);
+
+  if (accountResult.error || assetResult.error || liabilityResult.error) {
+    return {
+      totalAccountBalances: 0,
+      totalAssetValues: 0,
+      totalAsset: 0,
+      totalLiability: 0,
+      netWorth: 0,
+      assetCount: 0,
+      liabilityCount: 0,
+      error: "Ringkasan portfolio belum bisa dimuat.",
+    };
+  }
+
+  const totalAccountBalances = (accountResult.data ?? []).reduce(
+    (total, account) => total + Number(account.current_balance),
+    0,
+  );
+  const totalAssetValues = (assetResult.data ?? []).reduce(
+    (total, asset) => total + Number(asset.current_value),
+    0,
+  );
+  const totalLiability = (liabilityResult.data ?? []).reduce(
+    (total, liability) => total + Number(liability.remaining_amount),
+    0,
+  );
+  const totalAsset = totalAccountBalances + totalAssetValues;
+
   return {
-    totalAccountBalances: data.totalAccountBalances,
-    totalAssetValues: data.totalAssetValues,
-    totalAsset: data.totalAsset,
-    totalLiability: data.totalLiability,
-    netWorth: data.netWorth,
-    assetCount: data.accounts.length + data.assets.length,
-    liabilityCount: data.liabilities.filter(
-      (liability) => liability.remainingAmount > 0,
+    totalAccountBalances,
+    totalAssetValues,
+    totalAsset,
+    totalLiability,
+    netWorth: totalAsset - totalLiability,
+    assetCount:
+      (accountResult.data ?? []).length + (assetResult.data ?? []).length,
+    liabilityCount: (liabilityResult.data ?? []).filter(
+      (liability) => Number(liability.remaining_amount) > 0,
     ).length,
-    error: data.error,
+    error: null,
   };
 }
 
