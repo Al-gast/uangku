@@ -5,7 +5,6 @@ import type {
   ManageableCategoryType,
   SettingsCategoryItem,
 } from "@/lib/categories/types";
-import { isProtectedCategoryName } from "@/lib/categories/types";
 import { createClient } from "@/lib/supabase/server";
 
 type CategoryRow = {
@@ -15,6 +14,9 @@ type CategoryRow = {
   transaction_type: ManageableCategoryType;
   is_default: boolean;
   is_active: boolean;
+  is_system: boolean;
+  sort_order: number;
+  aliases: string[] | null;
 };
 
 type TransactionCategoryRow = {
@@ -31,11 +33,9 @@ export async function getSettingsCategories(): Promise<{
   error: string | null;
 }> {
   const supabase = await createClient();
-  const [manualSetupResult, adminFeeSetupResult] = await Promise.all([
-    supabase.rpc("ensure_manual_cashflow_categories"),
-    supabase.rpc("ensure_admin_fee_category"),
-  ]);
-  const setupError = manualSetupResult.error ?? adminFeeSetupResult.error;
+  const { error: setupError } = await supabase.rpc(
+    "ensure_default_categories",
+  );
 
   if (setupError) {
     return {
@@ -49,10 +49,19 @@ export async function getSettingsCategories(): Promise<{
 
   const categoryResult = await supabase
     .from("categories")
-    .select("id,name,group,transaction_type,is_default,is_active")
-    .in("transaction_type", ["income", "expense"])
+    .select(
+      "id,name,group,transaction_type,is_default,is_active,is_system,sort_order,aliases",
+    )
+    .in("transaction_type", [
+      "expense",
+      "income",
+      "transfer",
+      "investment",
+      "debt",
+    ])
     .order("transaction_type")
     .order("is_active", { ascending: false })
+    .order("sort_order")
     .order("name");
 
   if (categoryResult.error) {
@@ -128,8 +137,9 @@ export async function getSettingsCategories(): Promise<{
       group: category.group,
       isDefault: category.is_default,
       isActive: category.is_active,
-      isProtected:
-        category.is_default || isProtectedCategoryName(category.name),
+      isSystem: category.is_system,
+      sortOrder: category.sort_order,
+      aliases: category.aliases ?? [],
       transactionCount: transactionCounts.get(category.id) ?? 0,
       budgetCount: budgetCounts.get(category.id) ?? 0,
       adminFeeReferenceCount: adminFeeCounts.get(category.id) ?? 0,

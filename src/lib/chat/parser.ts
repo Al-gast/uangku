@@ -268,6 +268,9 @@ function matchCategory(
     .map((category) => ({
       category,
       name: normalize(category.name),
+      aliases: (category.aliases ?? [])
+        .map((alias) => normalize(alias))
+        .filter(Boolean),
     }))
     .sort((a, b) => b.name.length - a.name.length);
   const withoutLeadingFiller = input
@@ -280,7 +283,17 @@ function matchCategory(
       ({ name }) =>
         input.startsWith(name) || withoutLeadingFiller.startsWith(name),
     )?.category ??
+    candidates.find(({ aliases }) =>
+      aliases.some(
+        (alias) =>
+          input.startsWith(alias) ||
+          withoutLeadingFiller.startsWith(alias),
+      ),
+    )?.category ??
     candidates.find(({ name }) => input.includes(name))?.category ??
+    candidates.find(({ aliases }) =>
+      aliases.some((alias) => input.includes(alias)),
+    )?.category ??
     null
   );
 }

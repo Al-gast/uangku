@@ -29,6 +29,9 @@ export type Category = {
   color: string | null;
   is_default: boolean;
   is_active: boolean;
+  is_system: boolean;
+  sort_order: number;
+  aliases: string[];
   created_at: string;
   updated_at: string;
 };

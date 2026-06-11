@@ -3,10 +3,7 @@ import type {
   CategoryTransactionType,
 } from "@/types/category";
 
-export type ManageableCategoryType = Extract<
-  CategoryTransactionType,
-  "income" | "expense"
->;
+export type ManageableCategoryType = CategoryTransactionType;
 
 export type ManageableCategoryGroup = CategoryGroup;
 
@@ -17,7 +14,9 @@ export type SettingsCategoryItem = {
   group: ManageableCategoryGroup;
   isDefault: boolean;
   isActive: boolean;
-  isProtected: boolean;
+  isSystem: boolean;
+  sortOrder: number;
+  aliases: string[];
   transactionCount: number;
   budgetCount: number;
   adminFeeReferenceCount: number;
@@ -26,6 +25,9 @@ export type SettingsCategoryItem = {
 export const categoryTypeLabels: Record<ManageableCategoryType, string> = {
   income: "Pemasukan",
   expense: "Pengeluaran",
+  transfer: "Transfer",
+  investment: "Investasi",
+  debt: "Hutang",
 };
 
 export const categoryGroupLabels: Record<ManageableCategoryGroup, string> = {
@@ -55,12 +57,19 @@ export const categoryGroupOptions: Array<{
   { value: "kesehatan", label: categoryGroupLabels.kesehatan },
   { value: "pendidikan", label: categoryGroupLabels.pendidikan },
   { value: "investasi", label: categoryGroupLabels.investasi },
+  { value: "transfer", label: categoryGroupLabels.transfer },
   { value: "income", label: categoryGroupLabels.income },
+  { value: "debt", label: categoryGroupLabels.debt },
   { value: "other", label: categoryGroupLabels.other },
 ];
 
-export const protectedCategoryNames = new Set(["biaya admin", "investasi"]);
+export const systemCategoryNames = new Set([
+  "biaya admin",
+  "transfer",
+  "investasi",
+  "hutang",
+]);
 
-export function isProtectedCategoryName(name: string) {
-  return protectedCategoryNames.has(name.trim().toLowerCase());
+export function isSystemCategoryName(name: string) {
+  return systemCategoryNames.has(name.trim().toLowerCase());
 }

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { restoreDefaultCategories } from "@/app/(app)/settings/categories/actions";
 import { CategoryForm } from "@/components/settings/category-form";
 import { CategoryList } from "@/components/settings/category-list";
+import { ConfirmActionForm } from "@/components/ui/confirm-action-form";
 import { getSettingsCategories } from "@/lib/categories/data";
 
 export const metadata: Metadata = {
@@ -39,8 +41,8 @@ export default async function CategoriesPage({
           Kategori
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted">
-          Kelola kategori pemasukan dan pengeluaran untuk cashflow, budget,
-          chat, dan laporan.
+          Kelola kategori, tipe sistem, dan alias chat untuk cashflow, budget,
+          laporan, dan input cepat.
         </p>
       </header>
 
@@ -55,10 +57,34 @@ export default async function CategoriesPage({
         </p>
       )}
 
+      <section className="mb-6 rounded-card border border-accent/25 bg-accent-soft p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-bold text-accent-strong">
+              Pulihkan kategori bawaan
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-muted">
+              Aktifkan kembali kategori default tanpa menghapus kategori custom.
+            </p>
+          </div>
+          <ConfirmActionForm
+            submitAction={restoreDefaultCategories}
+            fields={[]}
+            buttonLabel="Pulihkan"
+            title="Pulihkan kategori bawaan?"
+            description="Kategori default yang pernah dinonaktifkan akan aktif lagi. Kategori custom dan histori transaksi tidak akan dihapus."
+            confirmLabel="Pulihkan"
+            buttonClassName="min-h-11 shrink-0 rounded-control bg-accent px-4 text-sm font-bold text-accent-foreground transition active:scale-[0.98]"
+            confirmButtonClassName="min-h-11 rounded-control bg-accent px-4 text-sm font-bold text-accent-foreground transition active:scale-[0.98]"
+          />
+        </div>
+      </section>
+
       <section className="mb-6 rounded-card border border-border bg-surface p-5 shadow-card">
         <h2 className="text-lg font-bold">Tambah kategori</h2>
         <p className="mt-1 text-sm leading-6 text-muted">
-          Buat kategori custom untuk pemasukan atau pengeluaran baru.
+          Buat kategori custom untuk pemasukan, pengeluaran, transfer,
+          investasi, atau hutang.
         </p>
         <div className="mt-4">
           <CategoryForm />

@@ -27,6 +27,7 @@ export type ChatCategory = {
   id: string;
   name: string;
   transactionType: ChatCategoryType;
+  aliases?: string[];
 };
 
 export type ChatAsset = {

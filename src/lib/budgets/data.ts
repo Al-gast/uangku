@@ -32,12 +32,9 @@ type BudgetTransactionRow = {
 
 export async function ensureBudgetCategories() {
   const supabase = await createClient();
-  const [{ error }, { error: adminFeeError }] = await Promise.all([
-    supabase.rpc("ensure_budget_categories"),
-    supabase.rpc("ensure_admin_fee_category"),
-  ]);
+  const { error } = await supabase.rpc("ensure_default_categories");
 
-  return { supabase, error: error ?? adminFeeError };
+  return { supabase, error };
 }
 
 export async function getBudgetCategoryOptions(includeCategoryId?: string) {
@@ -57,6 +54,8 @@ export async function getBudgetCategoryOptions(includeCategoryId?: string) {
     .from("categories")
     .select("id,name")
     .eq("transaction_type", "expense")
+    .neq("is_system", true)
+    .order("sort_order")
     .order("name");
 
   query = includeCategoryId

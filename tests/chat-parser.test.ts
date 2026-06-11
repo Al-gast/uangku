@@ -37,7 +37,12 @@ const accounts: ChatAccount[] = [
 ];
 
 const categories: ChatCategory[] = [
-  { id: "category-makan", name: "Makan", transactionType: "expense" },
+  {
+    id: "category-makan",
+    name: "Makan",
+    transactionType: "expense",
+    aliases: ["gofood", "sarapan"],
+  },
   { id: "category-jajan", name: "Jajan", transactionType: "expense" },
   { id: "category-kopi", name: "Kopi", transactionType: "expense" },
   { id: "category-listrik", name: "Listrik", transactionType: "expense" },
@@ -197,6 +202,11 @@ function runParserRegressionTests() {
     amount: 20_000,
     categoryId: "category-makan",
     merchant: "ayam goreng",
+  });
+  expectDraft("gofood ayam goreng 20k", {
+    type: "expense",
+    amount: 20_000,
+    categoryId: "category-makan",
   });
   expectDraft("jajan cilok 5k", {
     type: "expense",

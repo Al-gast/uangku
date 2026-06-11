@@ -24,7 +24,21 @@ const categoryTypeOptions: Array<{
 }> = [
   { value: "expense", label: categoryTypeLabels.expense },
   { value: "income", label: categoryTypeLabels.income },
+  { value: "transfer", label: categoryTypeLabels.transfer },
+  { value: "investment", label: categoryTypeLabels.investment },
+  { value: "debt", label: categoryTypeLabels.debt },
 ];
+
+const defaultGroupByType: Record<
+  ManageableCategoryType,
+  ManageableCategoryGroup
+> = {
+  expense: "primer",
+  income: "income",
+  transfer: "transfer",
+  investment: "investasi",
+  debt: "debt",
+};
 
 function SubmitButton({ isEditing }: { isEditing: boolean }) {
   const { pending } = useFormStatus();
@@ -63,7 +77,7 @@ export function CategoryForm({
   function changeType(nextType: string) {
     const typedNextType = nextType as ManageableCategoryType;
     setTransactionType(typedNextType);
-    setGroup(typedNextType === "income" ? "income" : "primer");
+    setGroup(defaultGroupByType[typedNextType]);
   }
 
   return (
@@ -129,6 +143,24 @@ export function CategoryForm({
         options={categoryGroupOptions}
         helperText="Grup membantu merapikan kategori di laporan."
       />
+
+      <label className="block">
+        <span className="mb-2 block text-sm font-bold">
+          Alias untuk chat
+        </span>
+        <textarea
+          name="aliases"
+          rows={3}
+          maxLength={1200}
+          defaultValue={category?.aliases.join(", ") ?? ""}
+          placeholder="Contoh: gofood, sarapan, warteg"
+          className="w-full rounded-control border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent-soft"
+        />
+        <p className="mt-2 text-xs leading-5 text-muted">
+          Pisahkan dengan koma. Alias membantu chat mengenali istilah yang biasa
+          kamu pakai.
+        </p>
+      </label>
 
       <SubmitButton isEditing={isEditing} />
     </form>

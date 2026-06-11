@@ -31,7 +31,8 @@ async function validateExpenseCategory(
     .from("categories")
     .select("id")
     .eq("id", categoryId)
-    .eq("transaction_type", "expense");
+    .eq("transaction_type", "expense")
+    .neq("is_system", true);
 
   query = allowInactive ? query : query.eq("is_active", true);
 

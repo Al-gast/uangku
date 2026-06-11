@@ -132,25 +132,20 @@ export function countActiveCashflowFilters(filters: CashflowFilters) {
 
 export async function ensureManualCashflowCategories() {
   const supabase = await createClient();
-  const [{ error }, { error: adminFeeError }] = await Promise.all([
-    supabase.rpc("ensure_manual_cashflow_categories"),
-    supabase.rpc("ensure_admin_fee_category"),
-  ]);
+  const { error } = await supabase.rpc("ensure_default_categories");
 
-  return { supabase, error: error ?? adminFeeError };
+  return { supabase, error };
 }
 
 export async function getCashflowFormOptions(includeCategoryId?: string) {
   const supabase = await createClient();
   const [
     setupResult,
-    adminFeeResult,
     accountResult,
     assetResult,
     liabilityResult,
   ] = await Promise.all([
-    supabase.rpc("ensure_manual_cashflow_categories"),
-    supabase.rpc("ensure_admin_fee_category"),
+    supabase.rpc("ensure_default_categories"),
     supabase
       .from("accounts")
       .select("id,name,current_balance")
@@ -168,7 +163,7 @@ export async function getCashflowFormOptions(includeCategoryId?: string) {
       .order("due_date", { ascending: true, nullsFirst: false })
       .order("created_at"),
   ]);
-  const categorySetupError = setupResult.error ?? adminFeeResult.error;
+  const categorySetupError = setupResult.error;
 
   if (categorySetupError) {
     return {
@@ -194,6 +189,7 @@ export async function getCashflowFormOptions(includeCategoryId?: string) {
       "investment",
       "debt",
     ])
+    .order("sort_order")
     .order("name");
 
   categoryQuery = includeCategoryId
@@ -239,6 +235,7 @@ export async function getCashflowFilterOptions() {
       .select("id,name,is_active")
       .in("type", spendableAccountTypes)
       .order("is_active", { ascending: false })
+      .order("sort_order")
       .order("name"),
     supabase
       .from("categories")
@@ -251,6 +248,7 @@ export async function getCashflowFilterOptions() {
         "debt",
       ])
       .order("is_active", { ascending: false })
+      .order("sort_order")
       .order("name"),
   ]);
 

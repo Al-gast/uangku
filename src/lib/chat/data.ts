@@ -12,13 +12,11 @@ export async function getChatOptions() {
   const supabase = await createClient();
   const [
     categorySetupResult,
-    manualCategorySetupResult,
     accountResult,
     assetResult,
     liabilityResult,
   ] = await Promise.all([
-    supabase.rpc("ensure_chat_categories"),
-    supabase.rpc("ensure_manual_cashflow_categories"),
+    supabase.rpc("ensure_default_categories"),
     supabase
       .from("accounts")
       .select("id,name,type,current_balance")
@@ -37,8 +35,7 @@ export async function getChatOptions() {
       .order("due_date", { ascending: true, nullsFirst: false })
       .order("created_at"),
   ]);
-  const categorySetupError = categorySetupResult.error;
-  const setupError = categorySetupError ?? manualCategorySetupResult.error;
+  const setupError = categorySetupResult.error;
 
   if (setupError) {
     return {
@@ -56,7 +53,7 @@ export async function getChatOptions() {
 
   const { data: categoryRows, error: categoryError } = await supabase
     .from("categories")
-    .select("id,name,transaction_type")
+    .select("id,name,transaction_type,aliases")
     .in("transaction_type", [
       "income",
       "expense",
@@ -65,6 +62,7 @@ export async function getChatOptions() {
       "debt",
     ])
     .eq("is_active", true)
+    .order("sort_order")
     .order("name");
   const { data: accountRows, error: accountError } = accountResult;
   const { data: assetRows, error: assetError } = assetResult;
@@ -103,6 +101,7 @@ export async function getChatOptions() {
       name: category.name,
       transactionType:
         category.transaction_type as ChatCategory["transactionType"],
+      aliases: category.aliases ?? [],
     })),
     setupError: null,
   };

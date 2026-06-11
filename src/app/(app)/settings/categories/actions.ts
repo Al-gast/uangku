@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { parseCategoryForm } from "@/lib/categories/validation";
-import { isProtectedCategoryName } from "@/lib/categories/types";
+import { isSystemCategoryName } from "@/lib/categories/types";
 import { createClient } from "@/lib/supabase/server";
 import type {
   ManageableCategoryGroup,
@@ -21,6 +21,7 @@ type CategoryMutationRow = {
   transaction_type: ManageableCategoryType;
   is_default: boolean;
   is_active: boolean;
+  is_system: boolean;
 };
 
 async function getAuthenticatedContext() {
@@ -53,10 +54,10 @@ function actionError(error: unknown, fallback: string): CategoryActionState {
   };
 }
 
-function isProtectedCategory(
-  category: Pick<CategoryMutationRow, "name" | "is_default">,
+function isSystemCategory(
+  category: Pick<CategoryMutationRow, "name" | "is_system">,
 ) {
-  return category.is_default || isProtectedCategoryName(category.name);
+  return category.is_system || isSystemCategoryName(category.name);
 }
 
 async function getCategoryForMutation(
@@ -66,10 +67,16 @@ async function getCategoryForMutation(
 ) {
   const { data, error } = await supabase
     .from("categories")
-    .select("id,name,group,transaction_type,is_default,is_active")
+    .select("id,name,group,transaction_type,is_default,is_active,is_system")
     .eq("id", categoryId)
     .eq("user_id", userId)
-    .in("transaction_type", ["income", "expense"])
+    .in("transaction_type", [
+      "income",
+      "expense",
+      "transfer",
+      "investment",
+      "debt",
+    ])
     .maybeSingle();
 
   if (error) {
@@ -165,8 +172,10 @@ export async function createCategory(
       name: input.name,
       group: input.group,
       transaction_type: input.transactionType,
+      aliases: input.aliases,
       is_default: false,
       is_active: true,
+      is_system: false,
     });
 
     if (error) {
@@ -202,7 +211,7 @@ export async function updateCategory(
       categoryId,
     );
 
-    if (isProtectedCategory(category)) {
+    if (isSystemCategory(category)) {
       throw new Error(
         "Kategori ini dipakai sistem, jadi tidak bisa diubah.",
       );
@@ -227,10 +236,17 @@ export async function updateCategory(
       .update({
         name: input.name,
         group: input.group,
+        aliases: input.aliases,
       })
       .eq("id", categoryId)
       .eq("user_id", userId)
-      .in("transaction_type", ["income", "expense"]);
+      .in("transaction_type", [
+        "income",
+        "expense",
+        "transfer",
+        "investment",
+        "debt",
+      ]);
 
     if (error) {
       throw new Error("Kategori belum berhasil diperbarui.");
@@ -262,7 +278,7 @@ export async function setCategoryActive(formData: FormData) {
   const { supabase, userId } = await getAuthenticatedContext();
   const category = await getCategoryForMutation(supabase, userId, categoryId);
 
-  if (isProtectedCategory(category)) {
+  if (isSystemCategory(category)) {
     redirect(
       `/settings/categories?error=${encodeURIComponent(
         "Kategori ini dipakai sistem, jadi tidak bisa dinonaktifkan atau dihapus.",
@@ -275,7 +291,13 @@ export async function setCategoryActive(formData: FormData) {
     .update({ is_active: isActive })
     .eq("id", categoryId)
     .eq("user_id", userId)
-    .in("transaction_type", ["income", "expense"]);
+    .in("transaction_type", [
+      "income",
+      "expense",
+      "transfer",
+      "investment",
+      "debt",
+    ]);
 
   if (error) {
     redirect(
@@ -297,6 +319,44 @@ export async function setCategoryActive(formData: FormData) {
   );
 }
 
+export async function restoreDefaultCategories() {
+  const { supabase, userId } = await getAuthenticatedContext();
+  const { error: setupError } = await supabase.rpc(
+    "ensure_default_categories",
+  );
+
+  if (setupError) {
+    redirect(
+      `/settings/categories?error=${encodeURIComponent(
+        setupError.code === "PGRST202" || setupError.code === "42883"
+          ? "Migration kategori belum diterapkan di Supabase."
+          : "Kategori bawaan belum bisa dipulihkan.",
+      )}`,
+    );
+  }
+
+  const { error } = await supabase
+    .from("categories")
+    .update({ is_active: true })
+    .eq("user_id", userId)
+    .eq("is_default", true);
+
+  if (error) {
+    redirect(
+      `/settings/categories?error=${encodeURIComponent(
+        "Kategori bawaan belum berhasil dipulihkan.",
+      )}`,
+    );
+  }
+
+  revalidateCategoryConsumers();
+  redirect(
+    `/settings/categories?success=${encodeURIComponent(
+      "Kategori bawaan berhasil dipulihkan.",
+    )}`,
+  );
+}
+
 export async function deleteCategory(formData: FormData) {
   const categoryId = String(formData.get("category_id") ?? "");
 
@@ -311,10 +371,18 @@ export async function deleteCategory(formData: FormData) {
   const { supabase, userId } = await getAuthenticatedContext();
   const category = await getCategoryForMutation(supabase, userId, categoryId);
 
-  if (isProtectedCategory(category)) {
+  if (isSystemCategory(category)) {
     redirect(
       `/settings/categories?error=${encodeURIComponent(
         "Kategori ini dipakai sistem, jadi tidak bisa dinonaktifkan atau dihapus.",
+      )}`,
+    );
+  }
+
+  if (category.is_default) {
+    redirect(
+      `/settings/categories?error=${encodeURIComponent(
+        "Kategori bawaan tidak bisa dihapus. Kamu bisa menonaktifkannya agar tidak muncul di pilihan baru.",
       )}`,
     );
   }
@@ -338,7 +406,13 @@ export async function deleteCategory(formData: FormData) {
     .delete()
     .eq("id", categoryId)
     .eq("user_id", userId)
-    .in("transaction_type", ["income", "expense"]);
+    .in("transaction_type", [
+      "income",
+      "expense",
+      "transfer",
+      "investment",
+      "debt",
+    ]);
 
   if (error) {
     redirect(

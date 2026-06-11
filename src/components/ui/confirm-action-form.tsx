@@ -16,6 +16,7 @@ type ConfirmActionFormProps = {
   confirmLabel: string;
   cancelLabel?: string;
   buttonClassName?: string;
+  confirmButtonClassName?: string;
 };
 
 export function ConfirmActionForm({
@@ -27,6 +28,7 @@ export function ConfirmActionForm({
   confirmLabel,
   cancelLabel = "Batal",
   buttonClassName = "text-sm font-bold text-expense",
+  confirmButtonClassName = "min-h-11 rounded-control bg-expense px-4 text-sm font-bold text-white transition active:scale-[0.98]",
 }: ConfirmActionFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -95,7 +97,7 @@ export function ConfirmActionForm({
                 <button
                   type="button"
                   onClick={confirmSubmit}
-                  className="min-h-11 rounded-control bg-expense px-4 text-sm font-bold text-white transition active:scale-[0.98]"
+                  className={confirmButtonClassName}
                 >
                   {confirmLabel}
                 </button>

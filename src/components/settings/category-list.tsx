@@ -16,8 +16,11 @@ const categorySections: Array<{
   type: ManageableCategoryType;
   title: string;
 }> = [
-  { type: "income", title: "Pemasukan" },
   { type: "expense", title: "Pengeluaran" },
+  { type: "income", title: "Pemasukan" },
+  { type: "transfer", title: "Transfer" },
+  { type: "investment", title: "Investasi" },
+  { type: "debt", title: "Hutang" },
 ];
 
 export function CategoryList({
@@ -100,9 +103,14 @@ function CategoryCard({
             >
               {category.isActive ? "Aktif" : "Nonaktif"}
             </span>
-            {category.isProtected && (
+            {category.isSystem && (
               <span className="rounded-full bg-accent-soft px-2.5 py-1 text-[0.65rem] font-bold text-accent-strong">
-                Dipakai sistem
+                Sistem
+              </span>
+            )}
+            {category.isDefault && !category.isSystem && (
+              <span className="rounded-full bg-surface-muted px-2.5 py-1 text-[0.65rem] font-bold text-muted">
+                Bawaan
               </span>
             )}
           </div>
@@ -114,10 +122,15 @@ function CategoryCard({
               ? ` · ${category.adminFeeReferenceCount} biaya admin`
               : ""}
           </p>
+          {category.aliases.length > 0 && (
+            <p className="mt-2 break-words text-xs leading-5 text-muted">
+              Alias: {category.aliases.join(", ")}
+            </p>
+          )}
         </div>
       </div>
 
-      {category.isProtected ? (
+      {category.isSystem ? (
         <p className="mt-4 rounded-control bg-surface-muted p-3 text-xs leading-5 text-muted">
           Kategori ini dipakai sistem, jadi tidak bisa diubah, dinonaktifkan,
           atau dihapus.
@@ -148,20 +161,23 @@ function CategoryCard({
                 {category.isActive ? "Nonaktifkan" : "Aktifkan"}
               </button>
             </form>
-            <ConfirmActionForm
-              submitAction={deleteCategory}
-              fields={[{ name: "category_id", value: category.id }]}
-              buttonLabel="Hapus"
-              title="Hapus kategori ini?"
-              description="Kategori hanya bisa dihapus jika belum punya transaksi, budget, atau histori biaya admin. Kalau sudah punya histori, nonaktifkan saja agar data lama tetap aman."
-              confirmLabel="Hapus Kategori"
-            />
+            {!category.isDefault && (
+              <ConfirmActionForm
+                submitAction={deleteCategory}
+                fields={[{ name: "category_id", value: category.id }]}
+                buttonLabel="Hapus"
+                title="Hapus kategori ini?"
+                description="Kategori hanya bisa dihapus jika belum punya transaksi, budget, atau histori biaya admin. Kalau sudah punya histori, nonaktifkan saja agar data lama tetap aman."
+                confirmLabel="Hapus Kategori"
+              />
+            )}
           </div>
 
-          {hasHistory && (
+          {(hasHistory || category.isDefault) && (
             <p className="mt-3 rounded-control bg-surface-muted p-3 text-xs leading-5 text-muted">
-              Kategori ini sudah punya histori, jadi tidak bisa dihapus. Kamu
-              bisa menonaktifkannya agar tidak muncul di pilihan baru.
+              {category.isDefault
+                ? "Kategori bawaan tidak bisa dihapus, tapi bisa dinonaktifkan jika tidak dipakai."
+                : "Kategori ini sudah punya histori, jadi tidak bisa dihapus. Kamu bisa menonaktifkannya agar tidak muncul di pilihan baru."}
             </p>
           )}
         </>
