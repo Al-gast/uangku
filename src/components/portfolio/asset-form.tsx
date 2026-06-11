@@ -14,6 +14,7 @@ import { usePrivacy } from "@/components/providers/privacy-provider";
 import { ConfirmActionForm } from "@/components/ui/confirm-action-form";
 import { ThemedNumberInput } from "@/components/ui/themed-number-input";
 import { portfolioAssetTypeMeta } from "@/constants/portfolio";
+import { parseLocaleDecimalInput } from "@/lib/number";
 import type {
   PortfolioAssetItem,
   PortfolioAssetType,
@@ -28,6 +29,8 @@ const unitDefaults: Partial<Record<PortfolioAssetType, string>> = {
   stock: "lot",
 };
 const quantityHelpers: Partial<Record<PortfolioAssetType, string>> = {
+  rdpu: "Contoh: 4.156,8771 unit",
+  rdpt: "Contoh: 4.156,8771 unit",
   crypto: "Contoh: 0.001 BTC",
   gold: "Contoh: 2 gram",
   stock: "Contoh: 10 lot",
@@ -104,6 +107,7 @@ export function AssetForm({
     initialState,
   );
   const { privacyEnabled } = usePrivacy();
+  const totalCostRef = useRef<HTMLInputElement>(null);
   const currentValueRef = useRef<HTMLInputElement>(null);
   const unitPriceRef = useRef<HTMLInputElement>(null);
   const [quantityValue, setQuantityValue] = useState(
@@ -112,8 +116,10 @@ export function AssetForm({
   const [unitPriceValue, setUnitPriceValue] = useState(
     String(asset?.unitPrice ?? ""),
   );
+  const [averageUnitCostValue, setAverageUnitCostValue] = useState("");
   const showPlatform = type !== "other_asset";
   const showTotalCost = type === "rdpu" || type === "rdpt";
+  const showAverageUnitCost = type === "rdpu" || type === "rdpt";
   const showUnitTracking =
     type === "crypto" ||
     type === "gold" ||
@@ -129,14 +135,9 @@ export function AssetForm({
   const showNotes = type === "other_asset";
 
   function calculateCurrentValue() {
-    const quantity = Number(quantityValue.replace(",", "."));
-    const unitPrice = Number(
-      unitPriceValue
-        .replace(/\s/g, "")
-        .replace(/\./g, "")
-        .replace(",", "."),
-    );
-    const calculated = Math.round(quantity * unitPrice * 100) / 100;
+    const quantity = parseLocaleDecimalInput(quantityValue);
+    const unitPrice = parseLocaleDecimalInput(unitPriceValue);
+    const calculated = Math.round(quantity * unitPrice);
 
     if (
       !currentValueRef.current ||
@@ -147,6 +148,22 @@ export function AssetForm({
     }
 
     currentValueRef.current.value = String(calculated);
+  }
+
+  function calculateTotalCost() {
+    const quantity = parseLocaleDecimalInput(quantityValue);
+    const averageUnitCost = parseLocaleDecimalInput(averageUnitCostValue);
+    const calculated = Math.round(quantity * averageUnitCost);
+
+    if (
+      !totalCostRef.current ||
+      !Number.isFinite(calculated) ||
+      calculated < 0
+    ) {
+      return;
+    }
+
+    totalCostRef.current.value = String(calculated);
   }
 
   return (
@@ -191,8 +208,9 @@ export function AssetForm({
         {showTotalCost && (
           <MoneyField
             name="total_cost"
-            label="Total modal (opsional)"
+            label="Total modal"
             defaultValue={asset?.totalCost}
+            inputRef={totalCostRef}
           />
         )}
 
@@ -222,11 +240,37 @@ export function AssetForm({
           </div>
         )}
 
+        {showAverageUnitCost && (
+          <div className="space-y-3">
+            <MoneyField
+              name="average_unit_cost"
+              label="Rata-rata NAB beli (opsional)"
+              masked={privacyEnabled}
+              onValueChange={setAverageUnitCostValue}
+            />
+            <button
+              type="button"
+              onClick={calculateTotalCost}
+              disabled={
+                quantityValue.trim().length === 0 ||
+                averageUnitCostValue.trim().length === 0
+              }
+              className="flex min-h-11 w-full items-center justify-center rounded-control border border-accent/30 bg-accent-soft px-4 text-sm font-bold text-accent transition hover:border-accent active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Hitung total modal
+            </button>
+          </div>
+        )}
+
         {showUnitPrice && (
           <div className="space-y-3">
             <MoneyField
               name="unit_price"
-              label="Harga per unit (opsional)"
+              label={
+                type === "rdpu" || type === "rdpt"
+                  ? "NAB/unit sekarang (opsional)"
+                  : "Harga per unit (opsional)"
+              }
               defaultValue={asset?.unitPrice}
               inputRef={unitPriceRef}
               masked={privacyEnabled}
@@ -291,7 +335,8 @@ export function AssetForm({
 
         {showUnitTracking && (
           <p className="rounded-control border border-border bg-surface-muted p-3 text-xs leading-5 text-muted">
-            Transaksi investasi belum otomatis mengubah jumlah unit.
+            Top up investasi otomatis menambah modal. Jumlah unit dan NAB
+            tetap bisa kamu update dari data platform.
           </p>
         )}
 

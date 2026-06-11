@@ -2,6 +2,10 @@ import {
   portfolioAssetTypes,
   type PortfolioAssetType,
 } from "./types";
+import {
+  parseIdrInput,
+  parseLocaleDecimalInput,
+} from "../number";
 
 const MAX_AMOUNT = 999_999_999_999_999;
 
@@ -42,9 +46,34 @@ function parseNumber(
     return null;
   }
 
-  const parsed = Number(
-    raw.replace(/\s/g, "").replace(/\./g, "").replace(",", "."),
-  );
+  const parsed = parseIdrInput(raw);
+
+  if (
+    !Number.isFinite(parsed) ||
+    parsed < 0 ||
+    (!options.allowZero && parsed === 0)
+  ) {
+    return Number.NaN;
+  }
+
+  if (parsed > MAX_AMOUNT) {
+    throw new Error("Nominal terlalu besar.");
+  }
+
+  return parsed;
+}
+
+function parseDecimalNumber(
+  value: FormDataEntryValue | null,
+  options: { required: boolean; allowZero: boolean },
+) {
+  const raw = String(value ?? "").trim();
+
+  if (!raw && !options.required) {
+    return null;
+  }
+
+  const parsed = parseLocaleDecimalInput(raw);
 
   if (
     !Number.isFinite(parsed) ||
@@ -68,7 +97,7 @@ function parseQuantity(value: FormDataEntryValue | null) {
     return null;
   }
 
-  const parsed = Number(raw.replace(/\s/g, "").replace(",", "."));
+  const parsed = parseLocaleDecimalInput(raw);
 
   if (!Number.isFinite(parsed) || parsed < 0) {
     return Number.NaN;
@@ -133,7 +162,7 @@ export function parseAssetForm(formData: FormData): AssetInput {
   });
   const quantity = parseQuantity(formData.get("quantity"));
   const unit = optionalText(formData.get("unit"), 20);
-  const unitPrice = parseNumber(formData.get("unit_price"), {
+  const unitPrice = parseDecimalNumber(formData.get("unit_price"), {
     required: false,
     allowZero: true,
   });

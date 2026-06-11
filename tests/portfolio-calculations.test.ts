@@ -625,6 +625,31 @@ function runPortfolioValidationTests() {
     notes: "Investasi jangka panjang",
   });
 
+  const rdpuForm = new FormData();
+  rdpuForm.set("type", "rdpu");
+  rdpuForm.set("name", "RDPU Bibit");
+  rdpuForm.set("platform", "Bibit");
+  rdpuForm.set("quantity", "4.156,8771");
+  rdpuForm.set("unit", "unit");
+  rdpuForm.set("unit_price", "1.194,74");
+  rdpuForm.set("total_cost", "4.900.000");
+  rdpuForm.set("current_value", "4.966.455");
+
+  assert.deepEqual(
+    {
+      quantity: parseAssetForm(rdpuForm).quantity,
+      unitPrice: parseAssetForm(rdpuForm).unitPrice,
+      totalCost: parseAssetForm(rdpuForm).totalCost,
+      currentValue: parseAssetForm(rdpuForm).currentValue,
+    },
+    {
+      quantity: 4156.8771,
+      unitPrice: 1194.74,
+      totalCost: 4_900_000,
+      currentValue: 4_966_455,
+    },
+  );
+
   const zeroValueAsset = new FormData();
   zeroValueAsset.set("type", "stock");
   zeroValueAsset.set("name", "BBCA");

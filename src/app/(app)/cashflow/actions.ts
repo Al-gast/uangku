@@ -45,6 +45,10 @@ function rpcErrorMessage(code?: string, message?: string) {
     return "Nilai aset tidak cukup untuk transaksi ini.";
   }
 
+  if (message?.includes("Asset total cost cannot be negative")) {
+    return "Total modal aset tidak cukup untuk perubahan transaksi ini.";
+  }
+
   if (message?.includes("Admin fee cannot exceed")) {
     return "Biaya admin tidak boleh lebih besar dari nominal jual.";
   }
