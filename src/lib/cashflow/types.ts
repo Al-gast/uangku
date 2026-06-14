@@ -1,5 +1,6 @@
 import type { TransactionType } from "@/types/transaction";
 import type { TransactionSource } from "@/types/transaction";
+import type { ReconciliationStatus } from "@/types/transaction";
 
 export type ManualTransactionType = Extract<
   TransactionType,
@@ -69,6 +70,7 @@ export type CashflowFilterCategoryOption = {
 export type CashflowTransactionItem = {
   id: string;
   source: Extract<TransactionSource, "manual" | "chat">;
+  reconciliationStatus: ReconciliationStatus;
   type: ManualTransactionType;
   amount: number;
   adminFeeAmount: number;

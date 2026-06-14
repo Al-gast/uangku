@@ -10,6 +10,11 @@ export type TransactionType =
 
 export type TransactionSource = "manual" | "chat" | "ocr" | "email";
 
+export type ReconciliationStatus =
+  | "unchecked"
+  | "matched"
+  | "needs_review";
+
 export type Transaction = {
   id: string;
   user_id: string;
@@ -27,6 +32,7 @@ export type Transaction = {
   notes: string | null;
   tags: string[];
   source: TransactionSource;
+  reconciliation_status: ReconciliationStatus;
   created_at: string;
   updated_at: string;
 };

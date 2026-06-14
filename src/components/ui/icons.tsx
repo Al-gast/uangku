@@ -2,6 +2,7 @@ import type { ReactNode, SVGProps } from "react";
 
 export type IconName =
   | "dashboard"
+  | "accounts"
   | "cashflow"
   | "chat"
   | "portfolio"
@@ -16,6 +17,14 @@ const paths: Record<IconName, ReactNode> = {
       <rect x="14" y="3" width="7" height="7" rx="2" />
       <rect x="3" y="14" width="7" height="7" rx="2" />
       <rect x="14" y="14" width="7" height="7" rx="2" />
+    </>
+  ),
+  accounts: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="3" />
+      <path d="M3 10h18" />
+      <path d="M7 15h4" />
+      <path d="M15 15h2" />
     </>
   ),
   cashflow: (

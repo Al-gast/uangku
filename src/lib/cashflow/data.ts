@@ -7,6 +7,7 @@ import {
   resolveJakartaMonthRange,
 } from "@/lib/date";
 import { createClient } from "@/lib/supabase/server";
+import type { ReconciliationStatus } from "@/types/transaction";
 import type {
   CashflowAccountOption,
   CashflowAssetOption,
@@ -24,6 +25,7 @@ import { cashflowDateRanges } from "@/lib/cashflow/types";
 type TransactionRow = {
   id: string;
   source: CashflowTransactionItem["source"];
+  reconciliation_status?: ReconciliationStatus | null;
   type: ManualTransactionType;
   amount: number | string;
   admin_fee_amount: number | string;
@@ -372,6 +374,7 @@ export async function mapTransactionRows(
   return rows.map((row) => ({
     id: row.id,
     source: row.source,
+    reconciliationStatus: row.reconciliation_status ?? "unchecked",
     type: row.type,
     amount: Number(row.amount),
     adminFeeAmount: Number(row.admin_fee_amount),

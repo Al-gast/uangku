@@ -28,6 +28,9 @@ type TransactionFormProps = {
   categories: CashflowCategoryOption[];
   defaultDate: string;
   transaction?: CashflowTransactionItem;
+  initialType?: ManualTransactionType;
+  initialAccountId?: string;
+  redirectTo?: string;
 };
 
 const typeOptions: Array<{
@@ -81,17 +84,25 @@ export function TransactionForm({
   categories,
   defaultDate,
   transaction,
+  initialType,
+  initialAccountId,
+  redirectTo = "/cashflow",
 }: TransactionFormProps) {
   const { privacyEnabled } = usePrivacy();
   const isEditing = Boolean(transaction);
   const action = isEditing ? updateTransaction : createTransaction;
   const [state, formAction] = useActionState(action, initialState);
+  const initialAccountExists = accounts.some(
+    (account) => account.id === initialAccountId,
+  );
+  const resolvedInitialAccountId =
+    transaction?.accountId ??
+    (initialAccountExists ? initialAccountId : accounts[0]?.id) ??
+    "";
   const [type, setType] = useState<ManualTransactionType>(
-    transaction?.type ?? "expense",
+    transaction?.type ?? initialType ?? "expense",
   );
-  const [accountId, setAccountId] = useState(
-    transaction?.accountId ?? accounts[0]?.id ?? "",
-  );
+  const [accountId, setAccountId] = useState(resolvedInitialAccountId);
   const [destinationAccountId, setDestinationAccountId] = useState(
     transaction?.transferToAccountId ?? "",
   );
@@ -180,6 +191,7 @@ export function TransactionForm({
       {transaction && (
         <input type="hidden" name="transaction_id" value={transaction.id} />
       )}
+      <input type="hidden" name="redirect_to" value={redirectTo} />
       <input type="hidden" name="type" value={type} />
       {(investmentType || debtPaymentType) && (
         <input type="hidden" name="category_id" value={categoryId} />

@@ -11,6 +11,51 @@ export type CashflowActionState = {
 
 const initialError =
   "Transaksi belum berhasil disimpan. Coba periksa datanya lagi.";
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function safeRedirectPath(formData: FormData) {
+  const redirectTo = String(formData.get("redirect_to") ?? "");
+
+  if (redirectTo === "/cashflow") {
+    return redirectTo;
+  }
+
+  const accountMatch = redirectTo.match(/^\/accounts\/([^/?#]+)$/);
+
+  if (accountMatch && uuidPattern.test(accountMatch[1] ?? "")) {
+    return redirectTo;
+  }
+
+  return "/cashflow";
+}
+
+function redirectWithMessage(
+  path: string,
+  key: "success" | "error",
+  message: string,
+): never {
+  redirect(`${path}?${key}=${encodeURIComponent(message)}`);
+}
+
+function revalidateTransactionSurfaces(
+  accountId?: string,
+  transferToAccountId?: string | null,
+) {
+  revalidatePath("/cashflow");
+  revalidatePath("/dashboard");
+  revalidatePath("/settings/budgets");
+  revalidatePath("/portfolio");
+  revalidatePath("/accounts");
+
+  if (accountId) {
+    revalidatePath(`/accounts/${accountId}`);
+  }
+
+  if (transferToAccountId) {
+    revalidatePath(`/accounts/${transferToAccountId}`);
+  }
+}
 
 function successMessage(type: string) {
   if (type === "income") {
@@ -69,6 +114,7 @@ export async function createTransaction(
   formData: FormData,
 ): Promise<CashflowActionState> {
   let input;
+  const redirectPath = safeRedirectPath(formData);
 
   try {
     input = parseManualTransactionForm(formData);
@@ -97,13 +143,11 @@ export async function createTransaction(
     return { error: rpcErrorMessage(error.code, error.message) };
   }
 
-  revalidatePath("/cashflow");
-  revalidatePath("/dashboard");
-  revalidatePath("/settings/budgets");
-  revalidatePath("/portfolio");
-  redirect(
-    `/cashflow?success=${encodeURIComponent(successMessage(input.type))}`,
+  revalidateTransactionSurfaces(
+    input.accountId,
+    input.transferToAccountId,
   );
+  redirectWithMessage(redirectPath, "success", successMessage(input.type));
 }
 
 export async function updateTransaction(
@@ -111,6 +155,7 @@ export async function updateTransaction(
   formData: FormData,
 ): Promise<CashflowActionState> {
   const transactionId = String(formData.get("transaction_id") ?? "");
+  const redirectPath = safeRedirectPath(formData);
 
   if (!transactionId) {
     return { error: "Transaksi tidak ditemukan." };
@@ -146,22 +191,23 @@ export async function updateTransaction(
     return { error: rpcErrorMessage(error.code, error.message) };
   }
 
-  revalidatePath("/cashflow");
-  revalidatePath("/dashboard");
-  revalidatePath("/settings/budgets");
-  revalidatePath("/portfolio");
-  redirect(
-    `/cashflow?success=${encodeURIComponent("Transaksi berhasil diperbarui.")}`,
+  revalidateTransactionSurfaces(
+    input.accountId,
+    input.transferToAccountId,
+  );
+  redirectWithMessage(
+    redirectPath,
+    "success",
+    "Transaksi berhasil diperbarui.",
   );
 }
 
 export async function deleteTransaction(formData: FormData) {
   const transactionId = String(formData.get("transaction_id") ?? "");
+  const redirectPath = safeRedirectPath(formData);
 
   if (!transactionId) {
-    redirect(
-      `/cashflow?error=${encodeURIComponent("Transaksi tidak ditemukan.")}`,
-    );
+    redirectWithMessage(redirectPath, "error", "Transaksi tidak ditemukan.");
   }
 
   const supabase = await createClient();
@@ -170,18 +216,17 @@ export async function deleteTransaction(formData: FormData) {
   });
 
   if (error) {
-    redirect(
-      `/cashflow?error=${encodeURIComponent(
-        rpcErrorMessage(error.code, error.message),
-      )}`,
+    redirectWithMessage(
+      redirectPath,
+      "error",
+      rpcErrorMessage(error.code, error.message),
     );
   }
 
-  revalidatePath("/cashflow");
-  revalidatePath("/dashboard");
-  revalidatePath("/settings/budgets");
-  revalidatePath("/portfolio");
-  redirect(
-    `/cashflow?success=${encodeURIComponent("Transaksi berhasil dihapus.")}`,
+  revalidateTransactionSurfaces();
+  redirectWithMessage(
+    redirectPath,
+    "success",
+    "Transaksi berhasil dihapus.",
   );
 }

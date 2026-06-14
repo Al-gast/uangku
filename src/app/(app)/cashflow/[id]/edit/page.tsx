@@ -13,22 +13,50 @@ export const metadata: Metadata = {
 
 type EditTransactionPageProps = {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{
+    return_to?: string | string[];
+  }>;
 };
+
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function safeReturnPath(value: string | undefined): string {
+  const rawValue = value ?? "";
+
+  if (rawValue === "/cashflow") {
+    return rawValue;
+  }
+
+  const accountMatch = rawValue.match(/^\/accounts\/([^/?#]+)$/);
+
+  if (accountMatch && uuidPattern.test(accountMatch[1] ?? "")) {
+    return rawValue;
+  }
+
+  return "/cashflow";
+}
 
 export default async function EditTransactionPage({
   params,
+  searchParams,
 }: EditTransactionPageProps) {
-  const { id } = await params;
+  const [{ id }, query] = await Promise.all([params, searchParams]);
+  const returnPath = safeReturnPath(firstParam(query.return_to));
   const transaction = await getCashflowTransaction(id);
   const options = await getCashflowFormOptions(transaction.categoryId);
 
   return (
     <>
       <Link
-        href="/cashflow"
+        href={returnPath}
         className="mb-5 inline-flex min-h-11 items-center text-sm font-bold text-muted"
       >
-        ← Cashflow
+        ← {returnPath.startsWith("/accounts/") ? "Account" : "Cashflow"}
       </Link>
       <header className="mb-7">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">
@@ -54,6 +82,7 @@ export default async function EditTransactionPage({
           categories={options.categories}
           defaultDate={toJakartaDateInput()}
           transaction={transaction}
+          redirectTo={returnPath}
         />
       )}
     </>

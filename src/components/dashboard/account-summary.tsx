@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { MoneyText } from "@/components/ui/money-text";
 import type { DashboardAccount } from "@/lib/dashboard/types";
 
@@ -20,7 +21,17 @@ export function AccountSummary({ accounts, error }: AccountSummaryProps) {
 
   return (
     <section>
-      <h2 className="text-lg font-bold">Saldo Akun</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg font-bold">Saldo Akun</h2>
+        {accounts.length > 0 && !error && (
+          <Link
+            href="/accounts"
+            className="text-sm font-bold text-accent-strong"
+          >
+            Lihat semua
+          </Link>
+        )}
+      </div>
 
       {error ? (
         <p className="mt-3 rounded-control border border-expense/30 bg-expense/10 p-4 text-sm leading-6 text-expense">
@@ -34,8 +45,9 @@ export function AccountSummary({ accounts, error }: AccountSummaryProps) {
         <>
           <div className="-mx-5 mt-3 flex snap-x gap-3 overflow-x-auto px-5 pb-2">
             {accounts.map((account) => (
-              <article
+              <Link
                 key={account.id}
+                href={`/accounts/${account.id}`}
                 className="min-w-[140px] snap-start rounded-card border border-border bg-surface p-4 shadow-card"
               >
                 <span className="text-lg" aria-hidden="true">
@@ -49,7 +61,7 @@ export function AccountSummary({ accounts, error }: AccountSummaryProps) {
                   value={account.currentBalance}
                   className="mt-1 text-base font-bold"
                 />
-              </article>
+              </Link>
             ))}
           </div>
           <div className="mt-2 flex items-center justify-end gap-2">

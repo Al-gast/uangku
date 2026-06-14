@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseEnv, hasSupabaseEnv } from "@/lib/supabase/config";
 
 const protectedRoutes = [
+  "/accounts",
   "/dashboard",
   "/cashflow",
   "/chat",
